@@ -272,15 +272,7 @@
 <!-- Phase 2: pin-drop mode UI -->
 <div id="pinBanner" class="pin-banner">
   Tap the map to place your shop's pin
-  <small>Or search / use Locate below — you can drag the pin to fine-tune it</small>
-</div>
-
-<div id="pinSearchWrap" class="pin-search-wrap">
-  <div class="pin-search-row">
-    <input id="pinSearchInput" type="text" placeholder="Search area, town or landmark…" autocomplete="off">
-    <button id="pinSearchBtn" type="button">Search</button>
-  </div>
-  <div id="pinSearchResults" class="pin-search-results" style="display:none;"></div>
+  <small>Or use the search bar above / Locate below — you can drag the pin to fine-tune it</small>
 </div>
 
 <div id="pinBar" class="pin-bar">
@@ -430,7 +422,7 @@
 // ---------------------------------------------------------------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, getDocs, addDoc, serverTimestamp, doc, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getAuth, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDbi-gQfQTYSI3naZX0679JXZBKiLGmygE",
@@ -490,6 +482,21 @@ if (document.readyState === "complete"){
 } else {
   window.addEventListener("load", window.EHUB_checkRedirectResult);
 }
+
+// Automatically pick up an already-signed-in session — e.g. if the person
+// signed in on the Home page (or a previous EnergyHub visit) and just
+// navigated here. Same Firebase project + same domain means the session
+// is already shared; this just makes EnergyHub actually check for it.
+onAuthStateChanged(auth, function(user){
+  if (user){
+    window.currentUser = user;
+    if (typeof updateUserChip === "function") updateUserChip();
+    if (typeof refreshOwnedShop === "function") refreshOwnedShop();
+  } else {
+    window.currentUser = null;
+    if (typeof updateUserChip === "function") updateUserChip();
+  }
+});
 </script>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -595,6 +602,10 @@ function locateMe(){
   mainSearchBtn.innerHTML = "Locating…";
   navigator.geolocation.getCurrentPosition(function(pos){
     mainSearchBtn.innerHTML = original;
+    if (pinModeActive){
+      placePin(pos.coords.latitude, pos.coords.longitude, true);
+      return;
+    }
     map.setView([pos.coords.latitude, pos.coords.longitude], 13);
     L.circleMarker([pos.coords.latitude, pos.coords.longitude], {
       radius: 8, color: '#1F5FBF', fillColor: '#1F5FBF', fillOpacity: 0.6
@@ -614,7 +625,7 @@ async function findPlaceOnMap(){
 
   try {
     var url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&countrycodes=in&q=" +
-      encodeURIComponent(q);
+      encodeURIComponent(pinModeActive ? q + " Andhra Pradesh" : q);
     var res = await fetch(url, { headers: { "Accept-Language": "en" } });
     var data = await res.json();
 
@@ -629,7 +640,11 @@ async function findPlaceOnMap(){
       row.textContent = place.display_name;
       row.addEventListener("click", function(){
         var lat = parseFloat(place.lat), lng = parseFloat(place.lon);
-        map.setView([lat, lng], 13);
+        if (pinModeActive){
+          placePin(lat, lng, true);
+        } else {
+          map.setView([lat, lng], 13);
+        }
         mainSearchResults.classList.remove("show");
         mainSearchInput.value = place.display_name;
       });
@@ -650,7 +665,6 @@ var pinLatLng = null;
 
 var pinBanner = document.getElementById("pinBanner");
 var pinBar = document.getElementById("pinBar");
-var pinSearchWrap = document.getElementById("pinSearchWrap");
 var pinContinueBtn = document.getElementById("pinContinueBtn");
 var sheetOverlay = document.getElementById("sheetOverlay");
 var shopSheet = document.getElementById("shopSheet");
@@ -827,25 +841,27 @@ document.getElementById("menuCartBtn").addEventListener("click", function(){
   });
 });
 
+var pinModeActive = false;
+
 function enterPinMode(){
+  pinModeActive = true;
   pinBanner.classList.add("show");
   pinBar.classList.add("show");
-  pinSearchWrap.classList.add("show");
   pinContinueBtn.disabled = true;
   map.on("click", onMapPickLocation);
-  document.getElementById("mainSearchBarSection").style.display = "none";
+  mainSearchInput.placeholder = "Search area, town or landmark…";
 }
 
 function exitPinMode(){
+  pinModeActive = false;
   pinBanner.classList.remove("show");
   pinBar.classList.remove("show");
-  pinSearchWrap.classList.remove("show");
-  document.getElementById("pinSearchResults").style.display = "none";
-  document.getElementById("pinSearchInput").value = "";
+  mainSearchResults.classList.remove("show");
+  mainSearchInput.value = "";
+  mainSearchInput.placeholder = "Search a place, or tap Locate…";
   map.off("click", onMapPickLocation);
   if (pinMarker){ map.removeLayer(pinMarker); pinMarker = null; }
   pinLatLng = null;
-  document.getElementById("mainSearchBarSection").style.display = "";
 }
 
 var tempPinIcon = L.divIcon({
@@ -889,55 +905,13 @@ document.getElementById("pinLocateBtn").addEventListener("click", function(){
   }, { enableHighAccuracy:true, timeout:12000 });
 });
 
-document.getElementById("pinSearchBtn").addEventListener("click", searchPinLocation);
-document.getElementById("pinSearchInput").addEventListener("keydown", function(e){
-  if (e.key === "Enter"){ e.preventDefault(); searchPinLocation(); }
-});
-
-async function searchPinLocation(){
-  var q = document.getElementById("pinSearchInput").value.trim();
-  var resultsBox = document.getElementById("pinSearchResults");
-  if (!q){ resultsBox.style.display = "none"; return; }
-
-  resultsBox.style.display = "block";
-  resultsBox.innerHTML = '<div>Searching…</div>';
-
-  try {
-    var url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&countrycodes=in&q=" +
-      encodeURIComponent(q + " Andhra Pradesh");
-    var res = await fetch(url, { headers: { "Accept-Language": "en" } });
-    var data = await res.json();
-
-    if (!data || data.length === 0){
-      resultsBox.innerHTML = '<div>No matches found. Try a different spelling or tap the map directly.</div>';
-      return;
-    }
-
-    resultsBox.innerHTML = "";
-    data.forEach(function(place){
-      var row = document.createElement("div");
-      row.textContent = place.display_name;
-      row.addEventListener("click", function(){
-        placePin(parseFloat(place.lat), parseFloat(place.lon), true);
-        resultsBox.style.display = "none";
-        document.getElementById("pinSearchInput").value = place.display_name;
-      });
-      resultsBox.appendChild(row);
-    });
-  } catch (err){
-    resultsBox.innerHTML = '<div>Search failed. Please check your connection and try again.</div>';
-    console.error(err);
-  }
-}
-
 pinContinueBtn.addEventListener("click", function(){
   if (!pinLatLng) return;
   document.getElementById("locChipText").textContent =
     "Pin set at " + pinLatLng.lat.toFixed(4) + ", " + pinLatLng.lng.toFixed(4);
   pinBanner.classList.remove("show");
   pinBar.classList.remove("show");
-  pinSearchWrap.classList.remove("show");
-  document.getElementById("pinSearchResults").style.display = "none";
+  mainSearchResults.classList.remove("show");
   openSheet(shopSheet);
 });
 
