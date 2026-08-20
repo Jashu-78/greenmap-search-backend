@@ -208,7 +208,7 @@
   </div>
 </div>
 
-<div class="search-bar-section">
+<div class="search-bar-section" id="mainSearchBarSection">
   <div class="search-bar-inner">
     <div class="search-wrap">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--textMuted)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -833,6 +833,7 @@ function enterPinMode(){
   pinSearchWrap.classList.add("show");
   pinContinueBtn.disabled = true;
   map.on("click", onMapPickLocation);
+  document.getElementById("mainSearchBarSection").style.display = "none";
 }
 
 function exitPinMode(){
@@ -844,6 +845,7 @@ function exitPinMode(){
   map.off("click", onMapPickLocation);
   if (pinMarker){ map.removeLayer(pinMarker); pinMarker = null; }
   pinLatLng = null;
+  document.getElementById("mainSearchBarSection").style.display = "";
 }
 
 var tempPinIcon = L.divIcon({
