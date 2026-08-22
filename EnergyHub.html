@@ -160,7 +160,10 @@
   .profile-head .p-meta span{display:flex;align-items:center;gap:4px;}
   .profile-head .p-desc{font-size:12px;color:var(--textDark);margin-top:8px;line-height:1.4;}
   .p-offer{margin-top:8px;background:#FFF3D6;color:#8a5b00;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:700;display:none;}
-  .add-shop-photo-btn{margin-top:10px;background:var(--card);border:1.5px dashed var(--line);color:var(--primary2);border-radius:10px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;width:100%;text-align:center;}
+  .profile-avatar-wrap{position:relative;flex-shrink:0;}
+  .avatar-edit-badge{position:absolute;bottom:-4px;right:-4px;width:24px;height:24px;border-radius:50%;background:var(--primary2);border:2px solid #fff;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;box-shadow:0 1px 4px rgba(0,0,0,.3);}
+  .avatar-edit-badge:disabled{opacity:.6;}
+  .avatar-edit-label{font-size:11px;font-weight:700;color:var(--primary2);margin-top:4px;cursor:pointer;}
   .add-shop-photo-btn:disabled{opacity:.6;}
 
   .products-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 8px;}
@@ -429,13 +432,16 @@
   <div class="sheet-body" style="padding:0 0 18px;">
     <div class="profile-head">
       <div class="profile-head-top">
-        <div class="profile-avatar" id="profAvatar">🏬</div>
+        <div class="profile-avatar-wrap" id="profAvatarWrap">
+          <div class="profile-avatar" id="profAvatar">🏬</div>
+          <button type="button" id="profAvatarBadge" class="avatar-edit-badge" style="display:none;">📷</button>
+        </div>
         <div style="flex:1;">
           <div class="p-name" id="profName"></div>
           <div class="p-type" id="profType"></div>
+          <div class="avatar-edit-label" id="profAvatarEditLabel" style="display:none;"></div>
         </div>
       </div>
-      <button type="button" id="profAddPhotoBtn" class="add-shop-photo-btn" style="display:none;">📷 Add Shop Profile Photo</button>
       <input id="profPhotoInput" type="file" accept="image/*" style="display:none;">
       <div class="p-meta">
         <span id="profContact"></span>
@@ -669,12 +675,21 @@ document.getElementById("layerToggleBtn").addEventListener("click", function(){
   }
 });
 
-var shopIcon = L.divIcon({
-  className: '',
-  html: '<div style="background:#39A845;width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3);border:2px solid #fff;"><span style="transform:rotate(45deg);font-size:14px;">⚡</span></div>',
-  iconSize: [30, 30],
-  iconAnchor: [15, 30]
-});
+function buildShopDivIcon(shop){
+  var inner = shop.photoURL
+    ? '<img src="' + shop.photoURL + '" style="width:100%;height:100%;object-fit:cover;">'
+    : '<span style="color:#fff;font-weight:800;font-size:15px;">' + escapeHtml(initialOfShop(shop.name)) + '</span>';
+  return L.divIcon({
+    className: '',
+    html: '<div style="width:34px;height:34px;border-radius:50%;overflow:hidden;background:#39A845;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.35);border:2.5px solid #fff;">' + inner + '</div>',
+    iconSize: [34, 34],
+    iconAnchor: [17, 17]
+  });
+}
+
+function updateShopMarkerIcon(shop){
+  if (shop._marker) shop._marker.setIcon(buildShopDivIcon(shop));
+}
 
 // Demo seed shops so the map isn't empty on first launch (clearly illustrative)
 var shopsRegistry = {};
@@ -690,7 +705,7 @@ function addShopMarker(shop){
   shop._regId = regId;
   shopsRegistry[regId] = shop;
 
-  var marker = L.marker([shop.lat, shop.lng], { icon: shopIcon }).addTo(map);
+  var marker = L.marker([shop.lat, shop.lng], { icon: buildShopDivIcon(shop) }).addTo(map);
   shop._marker = marker;
   var popupHtml =
     '<div class="shop-popup">' +
@@ -1276,11 +1291,7 @@ document.getElementById("shopForm").addEventListener("submit", async function(e)
   try {
     if (selectedShopPhotoFile){
       saveBtn.textContent = "Uploading photo…";
-      var uid = currentUser ? currentUser.uid : "anon";
-      var path = "shopPhotos/" + uid + "/" + Date.now() + "_" + selectedShopPhotoFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      var fileRef = window.EHUB.storageRef(window.EHUB.storage, path);
-      await window.EHUB.uploadBytes(fileRef, selectedShopPhotoFile);
-      newShop.photoURL = await window.EHUB.getDownloadURL(fileRef);
+      newShop.photoURL = await uploadShopPhoto(selectedShopPhotoFile, null);
       saveBtn.textContent = "Saving…";
     }
 
@@ -1348,10 +1359,17 @@ async function openShopProfile(shop){
     avatarEl.textContent = initialOfShop(shop.name);
   }
 
-  var addPhotoBtn = document.getElementById("profAddPhotoBtn");
-  addPhotoBtn.style.display = (canManage && !shop.photoURL) ? "block" : "none";
-  addPhotoBtn.disabled = false;
-  addPhotoBtn.textContent = "📷 Add Shop Profile Photo";
+  var avatarBadge = document.getElementById("profAvatarBadge");
+  var avatarLabel = document.getElementById("profAvatarEditLabel");
+  if (canManage){
+    avatarBadge.style.display = "flex";
+    avatarLabel.style.display = "block";
+    avatarBadge.disabled = false;
+    avatarLabel.textContent = shop.photoURL ? "Change Shop Icon" : "Add Shop Icon";
+  } else {
+    avatarBadge.style.display = "none";
+    avatarLabel.style.display = "none";
+  }
 
   document.getElementById("profName").textContent = shop.name;
   document.getElementById("profType").textContent = shop.type || "Energy Shop";
@@ -1423,9 +1441,33 @@ async function openShopProfile(shop){
   loadReviews(shop.id);
 }
 
-document.getElementById("profAddPhotoBtn").addEventListener("click", function(){
+document.getElementById("profAvatarBadge").addEventListener("click", function(){
   document.getElementById("profPhotoInput").click();
 });
+document.getElementById("profAvatarEditLabel").addEventListener("click", function(){
+  document.getElementById("profPhotoInput").click();
+});
+
+// Wraps a Firebase upload/promise so it can never hang forever silently —
+// if Storage isn't set up yet in the Firebase console, this surfaces that
+// clearly instead of getting stuck on "Uploading…" with no feedback.
+function withTimeout(promise, ms, label){
+  return Promise.race([
+    promise,
+    new Promise(function(_, reject){
+      setTimeout(function(){ reject(new Error((label || "Request") + " timed out after " + Math.round(ms/1000) + "s. This usually means Firebase Storage hasn't been set up yet in the console — go to console.firebase.google.com \u2192 your project \u2192 Storage \u2192 Get started.")); }, ms);
+    })
+  ]);
+}
+
+async function uploadShopPhoto(file, shopId){
+  var uid = currentUser ? currentUser.uid : "anon";
+  var path = "shopPhotos/" + uid + "/" + Date.now() + "_" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  var fileRef = window.EHUB.storageRef(window.EHUB.storage, path);
+  await withTimeout(window.EHUB.uploadBytes(fileRef, file), 20000, "Photo upload");
+  var url = await withTimeout(window.EHUB.getDownloadURL(fileRef), 15000, "Fetching photo link");
+  return url;
+}
 
 document.getElementById("profPhotoInput").addEventListener("change", async function(e){
   var file = e.target.files && e.target.files[0];
@@ -1437,31 +1479,31 @@ document.getElementById("profPhotoInput").addEventListener("change", async funct
     return;
   }
 
-  var btn = document.getElementById("profAddPhotoBtn");
-  btn.disabled = true;
-  btn.textContent = "Uploading…";
+  var badge = document.getElementById("profAvatarBadge");
+  var label = document.getElementById("profAvatarEditLabel");
+  badge.disabled = true;
+  label.textContent = "Uploading…";
 
   try {
-    var uid = currentUser ? currentUser.uid : "anon";
-    var path = "shopPhotos/" + uid + "/" + Date.now() + "_" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    var fileRef = window.EHUB.storageRef(window.EHUB.storage, path);
-    await window.EHUB.uploadBytes(fileRef, file);
-    var url = await window.EHUB.getDownloadURL(fileRef);
+    var url = await uploadShopPhoto(file, currentProfileShop.id);
 
-    await window.EHUB.updateDoc(
-      window.EHUB.doc(window.EHUB.db, "shops", currentProfileShop.id),
-      { photoURL: url }
+    await withTimeout(
+      window.EHUB.updateDoc(window.EHUB.doc(window.EHUB.db, "shops", currentProfileShop.id), { photoURL: url }),
+      15000, "Saving photo"
     );
 
     currentProfileShop.photoURL = url;
-    // keep the map-marker registry copy in sync too, so the menu list picks it up
-    if (shopsRegistry[currentProfileShop.id]) shopsRegistry[currentProfileShop.id].photoURL = url;
+    // keep the map-marker registry copy in sync too, so the menu list + pin update
+    if (shopsRegistry[currentProfileShop.id]){
+      shopsRegistry[currentProfileShop.id].photoURL = url;
+      updateShopMarkerIcon(shopsRegistry[currentProfileShop.id]);
+    }
 
     openShopProfile(currentProfileShop);
   } catch (err){
-    btn.disabled = false;
-    btn.textContent = "📷 Add Shop Profile Photo";
-    alert("Could not upload the photo. Please check your connection and try again.");
+    badge.disabled = false;
+    label.textContent = currentProfileShop.photoURL ? "Change Shop Icon" : "Add Shop Icon";
+    alert(err.message || "Could not upload the photo. Please check your connection and try again.");
     console.error(err);
   }
 });
