@@ -221,6 +221,48 @@
   .cart-summary-row.total{font-size:15px;font-weight:800;color:var(--primary);padding-top:8px;border-top:1px solid var(--line);margin-top:6px;}
   .cart-checkout-btn{width:100%;height:46px;border-radius:12px;border:none;background:var(--accent);color:#3a2a00;font-weight:800;font-size:14px;cursor:pointer;margin-top:12px;}
   .cart-empty{padding:40px 18px;text-align:center;color:var(--textMuted);font-size:13px;}
+
+  /* --- Phase 3: demo payment flow --- */
+  .payment-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1300;display:none;align-items:center;justify-content:center;padding:24px;}
+  .payment-overlay.show{display:flex;}
+  .payment-modal{background:#fff;border-radius:18px;padding:26px 22px;width:100%;max-width:340px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3);}
+  .pay-state{display:flex;flex-direction:column;align-items:center;}
+  .pay-icon{font-size:34px;margin-bottom:6px;}
+  .pay-state h3{font-size:16px;color:var(--primary);margin-bottom:6px;}
+  .pay-summary-text{font-size:12.5px;color:var(--textMuted);line-height:1.5;}
+  .pay-actions{display:flex;gap:10px;width:100%;margin-top:18px;}
+  .pay-btn-secondary{flex:1;height:42px;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--textMuted);font-weight:700;font-size:13px;cursor:pointer;}
+  .pay-btn-primary{flex:1;height:42px;border-radius:10px;border:none;background:var(--primary2);color:#fff;font-weight:700;font-size:13px;cursor:pointer;}
+  .pay-total-label{font-size:12px;color:var(--textMuted);margin-top:4px;}
+  .pay-total-amount{font-size:30px;font-weight:800;color:var(--primary);margin:4px 0 8px;}
+  .pay-demo-link{background:none;border:none;color:#1F5FBF;font-size:12px;font-weight:700;text-decoration:underline;cursor:pointer;margin-top:16px;padding:4px;}
+  .pay-qr-label{font-size:12.5px;color:var(--textDark);font-weight:700;margin-bottom:10px;}
+  .pay-qr-box{border-radius:10px;border:1px solid var(--line);}
+  .pay-qr-hint{font-size:11.5px;color:var(--textMuted);margin-top:10px;}
+  .pay-success-check{width:64px;height:64px;border-radius:50%;background:#2E7D32;color:#fff;font-size:34px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+
+  /* --- Phase 4: orders --- */
+  .order-card{margin:12px 18px;border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  .order-card-head{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--card);}
+  .order-id-text{font-size:11px;color:var(--textMuted);}
+  .order-status-badge{font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;background:#DFF3DC;color:#2E7D32;text-transform:uppercase;letter-spacing:.03em;}
+  .order-item-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);}
+  .order-item-row:last-of-type{border-bottom:none;}
+  .oi-thumb{width:40px;height:40px;border-radius:8px;background:var(--bg);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;overflow:hidden;}
+  .oi-thumb img{width:100%;height:100%;object-fit:cover;}
+  .oi-name{font-size:12px;font-weight:700;color:var(--textDark);}
+  .oi-meta{font-size:11px;color:var(--textMuted);margin-top:1px;}
+  .order-total-row{display:flex;justify-content:space-between;padding:10px 14px;font-size:13px;font-weight:800;color:var(--primary);border-top:1px solid var(--line);}
+  .order-tracker{display:flex;justify-content:space-between;padding:12px 16px 14px;gap:4px;}
+  .tracker-step{flex:1;text-align:center;position:relative;}
+  .tracker-step .ts-dot{width:16px;height:16px;border-radius:50%;background:var(--line);margin:0 auto 4px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;}
+  .tracker-step.done .ts-dot{background:var(--primary2);}
+  .tracker-step .ts-label{font-size:9px;color:var(--textMuted);}
+  .tracker-step.done .ts-label{color:var(--primary2);font-weight:700;}
+  .tracker-step:not(:last-child)::after{content:'';position:absolute;top:8px;left:58%;width:84%;height:2px;background:var(--line);}
+  .tracker-step.done:not(:last-child)::after{background:var(--primary2);}
+  .order-buyer-info{padding:8px 14px;font-size:11.5px;color:var(--textMuted);background:var(--bg);}
+  .no-orders{padding:40px 18px;text-align:center;color:var(--textMuted);font-size:13px;}
 </style>
 </head>
 <body>
@@ -421,7 +463,32 @@
     <div class="post-save-choice">
       <button type="button" class="psc-add" id="shopActionLocateBtn">📍 Locate Shop</button>
       <button type="button" class="psc-skip" id="shopActionViewBtn">🏪 View Shop Profile</button>
+      <button type="button" class="psc-skip" id="shopActionOrdersBtn">📥 Orders Received</button>
     </div>
+  </div>
+</div>
+
+<!-- Phase 4: buyer's order history -->
+<div id="ordersSheet" class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <h3>Your Orders</h3>
+    <button type="button" class="sheet-close" id="ordersCloseBtn">✕</button>
+  </div>
+  <div class="sheet-body" style="padding:0 0 18px;">
+    <div id="ordersListBox"></div>
+  </div>
+</div>
+
+<!-- Phase 4: seller's orders received, per shop -->
+<div id="sellerOrdersSheet" class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <h3 id="sellerOrdersTitle">Orders Received</h3>
+    <button type="button" class="sheet-close" id="sellerOrdersCloseBtn">✕</button>
+  </div>
+  <div class="sheet-body" style="padding:0 0 18px;">
+    <div id="sellerOrdersListBox"></div>
   </div>
 </div>
 
@@ -561,6 +628,43 @@
   <div class="sheet-body" style="padding:0 0 18px;">
     <div id="cartItemsBox"></div>
     <div id="cartSummaryBox"></div>
+  </div>
+</div>
+
+<!-- Phase 3 (payment): confirm → pay → QR → success, all in one modal -->
+<div id="paymentOverlay" class="payment-overlay">
+  <div class="payment-modal">
+
+    <div id="payStateConfirm" class="pay-state">
+      <div class="pay-icon">🛒</div>
+      <h3>Confirm Your Order</h3>
+      <p id="payConfirmSummary" class="pay-summary-text"></p>
+      <div class="pay-actions">
+        <button type="button" id="payCancelBtn" class="pay-btn-secondary">Cancel</button>
+        <button type="button" id="payConfirmBtn" class="pay-btn-primary">Confirm</button>
+      </div>
+    </div>
+
+    <div id="payStatePay" class="pay-state" style="display:none;">
+      <p class="pay-total-label">Amount to Pay</p>
+      <p class="pay-total-amount" id="payAmountText">₹0</p>
+      <button type="button" id="payCancelBtn2" class="pay-btn-secondary" style="margin-top:18px;">Cancel</button>
+      <button type="button" id="payDemoPaymentLink" class="pay-demo-link">Demo Payment</button>
+    </div>
+
+    <div id="payStateQR" class="pay-state" style="display:none;">
+      <p class="pay-qr-label">Scan to Pay</p>
+      <canvas id="payQrCanvas" width="180" height="180" class="pay-qr-box"></canvas>
+      <p class="pay-qr-hint">Simulating payment… <span id="payQrCountdown">10</span>s</p>
+    </div>
+
+    <div id="payStateSuccess" class="pay-state" style="display:none;">
+      <div class="pay-success-check">✓</div>
+      <h3>Payment Successful!</h3>
+      <p class="pay-summary-text">Your order has been placed.</p>
+      <button type="button" id="payDoneBtn" class="pay-btn-primary" style="margin-top:14px;">Done</button>
+    </div>
+
   </div>
 </div>
 
@@ -915,6 +1019,8 @@ var productSheet = document.getElementById("productSheet");
 var cartSheet = document.getElementById("cartSheet");
 var shopActionSheet = document.getElementById("shopActionSheet");
 var reviewSheet = document.getElementById("reviewSheet");
+var ordersSheet = document.getElementById("ordersSheet");
+var sellerOrdersSheet = document.getElementById("sellerOrdersSheet");
 
 var activeSheet = null;
 var lastSavedShopId = null;
@@ -1017,6 +1123,153 @@ document.getElementById("shopActionViewBtn").addEventListener("click", function(
   closeSheet(shopActionSheet);
   closeMenu();
   if (shop) openShopProfile(shop);
+});
+
+document.getElementById("shopActionOrdersBtn").addEventListener("click", function(){
+  var shop = shopActionSheet._targetShop;
+  closeSheet(shopActionSheet);
+  closeMenu();
+  if (shop) openSellerOrders(shop);
+});
+
+// ---------------------------------------------------------------------------
+// Phase 4: Orders — buyer's history + seller's "Orders Received", both built
+// from the same "orders" collection created during checkout
+// ---------------------------------------------------------------------------
+var TRACKER_STAGES = ["Placed", "Packed", "Shipped", "Delivered"];
+
+// Demo-only: simulates progress over time since the real order, purely for
+// visual effect — there's no actual courier integration behind this.
+function trackerStageIndex(createdAtDate){
+  if (!createdAtDate) return 0;
+  var minutesElapsed = (Date.now() - createdAtDate.getTime()) / 60000;
+  if (minutesElapsed >= 3) return 3;
+  if (minutesElapsed >= 2) return 2;
+  if (minutesElapsed >= 1) return 1;
+  return 0;
+}
+
+function formatOrderDate(createdAtDate){
+  if (!createdAtDate) return "";
+  return createdAtDate.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) +
+    " · " + createdAtDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+}
+
+function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
+  var createdAtDate = order.createdAt && order.createdAt.toDate ? order.createdAt.toDate() : null;
+  var stageIdx = trackerStageIndex(createdAtDate);
+
+  var itemsSubtotal = itemsToShow.reduce(function(sum, it){ return sum + (it.price * it.qty); }, 0);
+
+  var itemsHtml = itemsToShow.map(function(it){
+    return '<div class="order-item-row">' +
+      '<div class="oi-thumb">' + (it.photoURL ? '<img src="' + it.photoURL + '" alt="">' : '🛒') + '</div>' +
+      '<div style="flex:1;">' +
+        '<div class="oi-name">' + escapeHtml(it.name) + '</div>' +
+        '<div class="oi-meta">' + (showBuyerInfo ? escapeHtml(it.shopName) + ' · ' : '') + 'Qty ' + it.qty + ' × ₹' + it.price.toLocaleString("en-IN") + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join("");
+
+  var trackerHtml = '<div class="order-tracker">' + TRACKER_STAGES.map(function(label, i){
+    return '<div class="tracker-step' + (i <= stageIdx ? ' done' : '') + '">' +
+      '<div class="ts-dot">' + (i <= stageIdx ? '✓' : '') + '</div>' +
+      '<div class="ts-label">' + label + '</div>' +
+    '</div>';
+  }).join("") + '</div>';
+
+  var buyerInfoHtml = showBuyerInfo
+    ? '<div class="order-buyer-info">👤 ' + escapeHtml(order.buyerName || "Guest") + '</div>'
+    : '';
+
+  return '<div class="order-card">' +
+    '<div class="order-card-head">' +
+      '<span class="order-id-text">' + formatOrderDate(createdAtDate) + ' · #' + orderId.slice(-6).toUpperCase() + '</span>' +
+      '<span class="order-status-badge">' + TRACKER_STAGES[stageIdx] + '</span>' +
+    '</div>' +
+    buyerInfoHtml +
+    itemsHtml +
+    trackerHtml +
+    '<div class="order-total-row"><span>' + (showBuyerInfo ? "Your items total" : "Order Total") + '</span><span>₹' + (showBuyerInfo ? itemsSubtotal : order.total).toLocaleString("en-IN") + '</span></div>' +
+  '</div>';
+}
+
+async function loadBuyerOrders(){
+  var listEl = document.getElementById("ordersListBox");
+  if (!currentUser){
+    listEl.innerHTML = '<div class="no-orders">Please sign in to see your orders.</div>';
+    return;
+  }
+  listEl.innerHTML = '<div class="no-orders">Loading your orders…</div>';
+
+  try {
+    var q = window.EHUB.query(
+      window.EHUB.collection(window.EHUB.db, "orders"),
+      window.EHUB.where("buyerUid", "==", currentUser.uid),
+      window.EHUB.orderBy("createdAt", "desc")
+    );
+    var snap = await window.EHUB.getDocs(q);
+    if (snap.empty){
+      listEl.innerHTML = '<div class="no-orders">No orders yet — items you buy will show up here with delivery tracking.</div>';
+      return;
+    }
+    listEl.innerHTML = "";
+    snap.forEach(function(docSnap){
+      var order = docSnap.data();
+      listEl.innerHTML += buildOrderCard(docSnap.id, order, order.items || [], false);
+    });
+  } catch (err){
+    listEl.innerHTML = '<div class="no-orders">Could not load your orders right now.</div>';
+    console.error(err);
+  }
+}
+
+async function openSellerOrders(shop){
+  document.getElementById("sellerOrdersTitle").textContent = shop.name + " — Orders";
+  var listEl = document.getElementById("sellerOrdersListBox");
+  listEl.innerHTML = '<div class="no-orders">Loading orders…</div>';
+  openSheet(sellerOrdersSheet);
+
+  if (!shop.id) return;
+
+  try {
+    var q = window.EHUB.query(
+      window.EHUB.collection(window.EHUB.db, "orders"),
+      window.EHUB.where("shopIds", "array-contains", shop.id),
+      window.EHUB.orderBy("createdAt", "desc")
+    );
+    var snap = await window.EHUB.getDocs(q);
+    if (snap.empty){
+      listEl.innerHTML = '<div class="no-orders">No orders for this shop yet.</div>';
+      return;
+    }
+    listEl.innerHTML = "";
+    snap.forEach(function(docSnap){
+      var order = docSnap.data();
+      var itemsForThisShop = (order.items || []).filter(function(it){ return it.shopId === shop.id; });
+      if (itemsForThisShop.length === 0) return;
+      listEl.innerHTML += buildOrderCard(docSnap.id, order, itemsForThisShop, true);
+    });
+    if (!listEl.innerHTML){
+      listEl.innerHTML = '<div class="no-orders">No orders for this shop yet.</div>';
+    }
+  } catch (err){
+    listEl.innerHTML = '<div class="no-orders">Could not load orders right now.</div>';
+    console.error(err);
+  }
+}
+
+document.getElementById("ordersCloseBtn").addEventListener("click", function(){
+  closeSheet(ordersSheet);
+});
+document.getElementById("sellerOrdersCloseBtn").addEventListener("click", function(){
+  closeSheet(sellerOrdersSheet);
+});
+
+document.getElementById("menuOrdersBtn").addEventListener("click", function(){
+  closeMenu();
+  loadBuyerOrders();
+  openSheet(ordersSheet);
 });
 
 async function refreshOwnedShops(){
@@ -1125,7 +1378,7 @@ document.getElementById("menuCartBtn").addEventListener("click", function(){
   openSheet(cartSheet);
 });
 
-["menuOrdersBtn","menuTopMarketsBtn","menuTopProductsBtn","menuTrendingBtn"].forEach(function(id){
+["menuTopMarketsBtn","menuTopProductsBtn","menuTrendingBtn"].forEach(function(id){
   document.getElementById(id).addEventListener("click", function(){
     closeMenu();
     alert("Coming soon! This feature is still being built.");
@@ -1759,6 +2012,7 @@ function renderCart(){
   var selectedSubtotal = 0;
   var selectedItemCount = 0;
   var selectedShopIds = {};
+  var selectedItemsList = [];
 
   Object.keys(byShop).forEach(function(shopId){
     var group = byShop[shopId];
@@ -1769,6 +2023,7 @@ function renderCart(){
         selectedSubtotal += lineTotal;
         selectedItemCount += item.qty;
         selectedShopIds[shopId] = true;
+        selectedItemsList.push(item);
       }
       itemsHtml +=
         '<div class="cart-row-flip">' +
@@ -1809,7 +2064,7 @@ function renderCart(){
       '</div>';
 
     document.getElementById("cartCheckoutBtn").addEventListener("click", function(){
-      alert("Demo payment flow coming very soon! Your order total is ready — ₹" + grandTotal.toLocaleString("en-IN") + " for " + selectedItemCount + " item(s).");
+      openPaymentFlow(selectedItemsList, grandTotal, selectedItemCount);
     });
   }
 
@@ -1843,6 +2098,133 @@ document.getElementById("cartCloseBtn").addEventListener("click", function(){
 });
 
 updateCartBadge();
+
+// ---------------------------------------------------------------------------
+// Phase 3: demo payment flow — confirm → pay → QR → success
+// ---------------------------------------------------------------------------
+var paymentOverlay = document.getElementById("paymentOverlay");
+var pendingOrderItems = [];
+var pendingOrderTotal = 0;
+var qrCountdownTimer = null;
+
+function showPayState(state){
+  ["payStateConfirm", "payStatePay", "payStateQR", "payStateSuccess"].forEach(function(id){
+    document.getElementById(id).style.display = (id === state) ? "flex" : "none";
+  });
+}
+
+function openPaymentFlow(items, total, itemCount){
+  if (!currentUser){
+    alert("Please sign in first to place an order — tap your profile icon at the top.");
+    return;
+  }
+  pendingOrderItems = items;
+  pendingOrderTotal = total;
+  document.getElementById("payConfirmSummary").textContent =
+    itemCount + " item(s) · Total ₹" + total.toLocaleString("en-IN");
+  showPayState("payStateConfirm");
+  paymentOverlay.classList.add("show");
+}
+
+function closePaymentFlow(){
+  if (qrCountdownTimer){ clearInterval(qrCountdownTimer); qrCountdownTimer = null; }
+  paymentOverlay.classList.remove("show");
+}
+
+document.getElementById("payCancelBtn").addEventListener("click", closePaymentFlow);
+document.getElementById("payCancelBtn2").addEventListener("click", closePaymentFlow);
+
+document.getElementById("payConfirmBtn").addEventListener("click", function(){
+  document.getElementById("payAmountText").textContent = "₹" + pendingOrderTotal.toLocaleString("en-IN");
+  showPayState("payStatePay");
+});
+
+function drawFakeQrCode(canvas){
+  var ctx = canvas.getContext("2d");
+  var gridSize = 21;
+  var cell = canvas.width / gridSize;
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#1a1a1a";
+
+  for (var y = 0; y < gridSize; y++){
+    for (var x = 0; x < gridSize; x++){
+      if (Math.random() > 0.55) ctx.fillRect(x * cell, y * cell, cell, cell);
+    }
+  }
+
+  function finderPattern(px, py){
+    ctx.fillStyle = "#1a1a1a";
+    ctx.fillRect(px * cell, py * cell, cell * 7, cell * 7);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect((px + 1) * cell, (py + 1) * cell, cell * 5, cell * 5);
+    ctx.fillStyle = "#1a1a1a";
+    ctx.fillRect((px + 2) * cell, (py + 2) * cell, cell * 3, cell * 3);
+  }
+  finderPattern(0, 0);
+  finderPattern(gridSize - 7, 0);
+  finderPattern(0, gridSize - 7);
+}
+
+document.getElementById("payDemoPaymentLink").addEventListener("click", function(){
+  drawFakeQrCode(document.getElementById("payQrCanvas"));
+  showPayState("payStateQR");
+
+  var secondsLeft = 10;
+  document.getElementById("payQrCountdown").textContent = secondsLeft;
+  qrCountdownTimer = setInterval(async function(){
+    secondsLeft--;
+    document.getElementById("payQrCountdown").textContent = secondsLeft;
+    if (secondsLeft <= 0){
+      clearInterval(qrCountdownTimer);
+      qrCountdownTimer = null;
+      await completeOrder();
+      showPayState("payStateSuccess");
+    }
+  }, 1000);
+});
+
+async function completeOrder(){
+  try {
+    var shopIdsSet = {};
+    pendingOrderItems.forEach(function(it){ shopIdsSet[it.shopId] = true; });
+
+    var order = {
+      buyerUid: currentUser.uid,
+      buyerName: currentUser.displayName || "Guest",
+      items: pendingOrderItems.map(function(it){
+        return {
+          shopId: it.shopId, shopName: it.shopName, productId: it.productId,
+          name: it.name, price: it.price, unit: it.unit || "", qty: it.qty,
+          photoURL: it.photoURL || ""
+        };
+      }),
+      shopIds: Object.keys(shopIdsSet),
+      total: pendingOrderTotal,
+      status: "placed",
+      createdAt: window.EHUB.serverTimestamp()
+    };
+
+    await window.EHUB.addDoc(window.EHUB.collection(window.EHUB.db, "orders"), order);
+
+    // Remove only the purchased items from the cart; keep the rest
+    var cart = loadCart();
+    var purchasedKeys = pendingOrderItems.map(function(it){ return it.shopId + "::" + it.productId; });
+    var remaining = cart.filter(function(item){
+      return purchasedKeys.indexOf(item.shopId + "::" + item.productId) === -1;
+    });
+    saveCart(remaining);
+    renderCart();
+  } catch (err){
+    console.error("Could not save order:", err);
+    // Still show success visually since the "payment" itself is a demo —
+    // but log this so it's visible during testing.
+  }
+}
+
+document.getElementById("payDoneBtn").addEventListener("click", function(){
+  closePaymentFlow();
+});
 
 document.getElementById("profileCloseBtn").addEventListener("click", function(){
   closeSheet(profileSheet);
