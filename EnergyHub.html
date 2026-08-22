@@ -201,6 +201,7 @@
 
   /* --- Phase 4: cart --- */
   .pc-add-cart{margin-top:6px;background:var(--primary2);color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;}
+  .pc-add-cart:disabled{opacity:.75;cursor:default;}
   .menu-item-badge{margin-left:auto;background:var(--accent);color:#3a2a00;border-radius:999px;padding:2px 8px;font-size:10.5px;font-weight:800;min-width:18px;text-align:center;}
 
   .cart-shop-group{padding:10px 18px 4px;}
@@ -241,6 +242,10 @@
   .pay-qr-hint{font-size:11.5px;color:var(--textMuted);margin-top:10px;}
   .pay-success-check{width:64px;height:64px;border-radius:50%;background:#2E7D32;color:#fff;font-size:34px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
 
+  .order-toast{position:fixed;top:14px;left:50%;transform:translateX(-50%) translateY(-80px);background:#2E7D32;color:#fff;border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.25);z-index:1400;transition:transform .3s ease;white-space:nowrap;}
+  .order-toast.show{transform:translateX(-50%) translateY(0);}
+  .order-toast-link{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:11.5px;font-weight:800;cursor:pointer;}
+
   /* --- Phase 4: orders --- */
   .order-card{margin:12px 18px;border:1px solid var(--line);border-radius:14px;overflow:hidden;}
   .order-card-head{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--card);}
@@ -253,16 +258,29 @@
   .oi-name{font-size:12px;font-weight:700;color:var(--textDark);}
   .oi-meta{font-size:11px;color:var(--textMuted);margin-top:1px;}
   .order-total-row{display:flex;justify-content:space-between;padding:10px 14px;font-size:13px;font-weight:800;color:var(--primary);border-top:1px solid var(--line);}
-  .order-tracker{display:flex;justify-content:space-between;padding:12px 16px 14px;gap:4px;}
-  .tracker-step{flex:1;text-align:center;position:relative;}
-  .tracker-step .ts-dot{width:16px;height:16px;border-radius:50%;background:var(--line);margin:0 auto 4px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;}
-  .tracker-step.done .ts-dot{background:var(--primary2);}
-  .tracker-step .ts-label{font-size:9px;color:var(--textMuted);}
-  .tracker-step.done .ts-label{color:var(--primary2);font-weight:700;}
-  .tracker-step:not(:last-child)::after{content:'';position:absolute;top:8px;left:58%;width:84%;height:2px;background:var(--line);}
-  .tracker-step.done:not(:last-child)::after{background:var(--primary2);}
+  .order-tracker-v{padding:12px 16px 14px;}
+  .tracker-v-step{display:flex;align-items:center;gap:10px;padding:5px 0;}
+  .tracker-v-step .tv-dot{width:18px;height:18px;border-radius:50%;background:var(--line);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .tracker-v-step.done .tv-dot{background:var(--primary2);}
+  .tracker-v-step.current .tv-dot{background:var(--accent);color:#3a2a00;}
+  .tracker-v-label{font-size:12px;color:var(--textMuted);}
+  .tracker-v-step.done .tracker-v-label{color:var(--textDark);font-weight:700;}
+  .tracker-v-step.current .tracker-v-label{color:var(--primary);font-weight:800;}
+  .tv-now{font-size:10px;color:var(--accentDeep);font-weight:700;}
   .order-buyer-info{padding:8px 14px;font-size:11.5px;color:var(--textMuted);background:var(--bg);}
   .no-orders{padding:40px 18px;text-align:center;color:var(--textMuted);font-size:13px;}
+
+  /* --- Phase 5: Top Markets / Top Products / Trending --- */
+  .rank-list-note{padding:10px 18px 4px;font-size:11.5px;color:var(--textMuted);}
+  .rank-row{display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid var(--line);cursor:pointer;}
+  .rank-row:active{background:var(--card);}
+  .rank-number{width:22px;font-size:14px;font-weight:800;color:var(--primary2);flex-shrink:0;text-align:center;}
+  .rank-thumb{width:44px;height:44px;border-radius:10px;background:var(--card);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:17px;overflow:hidden;}
+  .rank-thumb img{width:100%;height:100%;object-fit:cover;}
+  .rank-name{font-size:13px;font-weight:700;color:var(--textDark);}
+  .rank-sub{font-size:11px;color:var(--textMuted);margin-top:1px;}
+  .rank-metric{font-size:12px;font-weight:800;color:var(--primary);white-space:nowrap;flex-shrink:0;}
+  .new-badge{display:inline-block;background:#FFB703;color:#3a2a00;font-size:9.5px;font-weight:800;border-radius:6px;padding:2px 7px;margin-top:2px;}
 </style>
 </head>
 <body>
@@ -492,6 +510,43 @@
   </div>
 </div>
 
+<!-- Phase 5: Top Markets / Top Products / Trending -->
+<div id="topMarketsSheet" class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <h3>📈 Top Markets</h3>
+    <button type="button" class="sheet-close" id="topMarketsCloseBtn">✕</button>
+  </div>
+  <div class="sheet-body" style="padding:0 0 18px;">
+    <div class="rank-list-note">Shops ranked by units sold across all orders.</div>
+    <div id="topMarketsListBox"></div>
+  </div>
+</div>
+
+<div id="topProductsSheet" class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <h3>📈 Top Products</h3>
+    <button type="button" class="sheet-close" id="topProductsCloseBtn">✕</button>
+  </div>
+  <div class="sheet-body" style="padding:0 0 18px;">
+    <div class="rank-list-note">Best-selling products across every shop.</div>
+    <div id="topProductsListBox"></div>
+  </div>
+</div>
+
+<div id="trendingSheet" class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <h3>🔥 Trending</h3>
+    <button type="button" class="sheet-close" id="trendingCloseBtn">✕</button>
+  </div>
+  <div class="sheet-body" style="padding:0 0 18px;">
+    <div class="rank-list-note">Newest products just listed across EnergyHub.</div>
+    <div id="trendingListBox"></div>
+  </div>
+</div>
+
 <!-- Phase 3: shop profile view (tap a pin) -->
 <div id="profileSheet" class="sheet">
   <div class="sheet-handle"></div>
@@ -632,6 +687,12 @@
 </div>
 
 <!-- Phase 3 (payment): confirm → pay → QR → success, all in one modal -->
+<!-- Phase 5b: order confirmation toast (auto-dismisses after 30s) -->
+<div id="orderToast" class="order-toast">
+  <span>✅ Order placed!</span>
+  <button type="button" id="orderToastLink" class="order-toast-link">View in Orders</button>
+</div>
+
 <div id="paymentOverlay" class="payment-overlay">
   <div class="payment-modal">
 
@@ -1136,17 +1197,16 @@ document.getElementById("shopActionOrdersBtn").addEventListener("click", functio
 // Phase 4: Orders — buyer's history + seller's "Orders Received", both built
 // from the same "orders" collection created during checkout
 // ---------------------------------------------------------------------------
-var TRACKER_STAGES = ["Placed", "Packed", "Shipped", "Delivered"];
+var TRACKER_STAGES = ["Product Ready", "Packed", "Shipped", "Reached Nearest Hub", "Out for Delivery", "Handed Over"];
 
 // Demo-only: simulates progress over time since the real order, purely for
 // visual effect — there's no actual courier integration behind this.
+// One stage advances every 30 seconds so you can actually watch it move.
 function trackerStageIndex(createdAtDate){
   if (!createdAtDate) return 0;
-  var minutesElapsed = (Date.now() - createdAtDate.getTime()) / 60000;
-  if (minutesElapsed >= 3) return 3;
-  if (minutesElapsed >= 2) return 2;
-  if (minutesElapsed >= 1) return 1;
-  return 0;
+  var secondsElapsed = (Date.now() - createdAtDate.getTime()) / 1000;
+  var stage = Math.floor(secondsElapsed / 30);
+  return Math.min(Math.max(stage, 0), TRACKER_STAGES.length - 1);
 }
 
 function formatOrderDate(createdAtDate){
@@ -1171,10 +1231,10 @@ function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
     '</div>';
   }).join("");
 
-  var trackerHtml = '<div class="order-tracker">' + TRACKER_STAGES.map(function(label, i){
-    return '<div class="tracker-step' + (i <= stageIdx ? ' done' : '') + '">' +
-      '<div class="ts-dot">' + (i <= stageIdx ? '✓' : '') + '</div>' +
-      '<div class="ts-label">' + label + '</div>' +
+  var trackerHtml = '<div class="order-tracker-v">' + TRACKER_STAGES.map(function(label, i){
+    return '<div class="tracker-v-step' + (i <= stageIdx ? ' done' : '') + (i === stageIdx ? ' current' : '') + '">' +
+      '<div class="tv-dot">' + (i < stageIdx ? '✓' : (i === stageIdx ? '●' : '')) + '</div>' +
+      '<div class="tracker-v-label">' + label + (i === stageIdx ? ' <span class="tv-now">(current)</span>' : '') + '</div>' +
     '</div>';
   }).join("") + '</div>';
 
@@ -1271,6 +1331,193 @@ document.getElementById("menuOrdersBtn").addEventListener("click", function(){
   loadBuyerOrders();
   openSheet(ordersSheet);
 });
+
+// ---------------------------------------------------------------------------
+// Phase 5: Top Markets, Top Products, Trending — built from real order data
+// ---------------------------------------------------------------------------
+var topMarketsSheet = document.getElementById("topMarketsSheet");
+var topProductsSheet = document.getElementById("topProductsSheet");
+var trendingSheet = document.getElementById("trendingSheet");
+
+function shopIconHtml(shopId, shopName){
+  var shop = shopsRegistry[shopId];
+  if (shop && shop.photoURL){
+    return '<img src="' + shop.photoURL + '" alt="">';
+  }
+  return escapeHtml(initialOfShop(shopName));
+}
+
+async function computeSalesAggregates(){
+  var byShop = {};
+  var byProduct = {};
+
+  var snap = await window.EHUB.getDocs(window.EHUB.collection(window.EHUB.db, "orders"));
+  snap.forEach(function(docSnap){
+    var order = docSnap.data();
+    (order.items || []).forEach(function(it){
+      if (!byShop[it.shopId]) byShop[it.shopId] = { shopName: it.shopName, qty: 0, revenue: 0 };
+      byShop[it.shopId].qty += it.qty;
+      byShop[it.shopId].revenue += it.qty * it.price;
+
+      var pKey = it.shopId + "::" + it.productId;
+      if (!byProduct[pKey]) byProduct[pKey] = { name: it.name, shopId: it.shopId, shopName: it.shopName, photoURL: it.photoURL || "", qty: 0 };
+      byProduct[pKey].qty += it.qty;
+    });
+  });
+
+  return { byShop: byShop, byProduct: byProduct };
+}
+
+document.getElementById("menuTopMarketsBtn").addEventListener("click", async function(){
+  closeMenu();
+  var listEl = document.getElementById("topMarketsListBox");
+  listEl.innerHTML = '<div class="no-orders">Crunching sales data…</div>';
+  openSheet(topMarketsSheet);
+
+  try {
+    var agg = await computeSalesAggregates();
+    var ranked = Object.keys(agg.byShop).map(function(shopId){
+      return { shopId: shopId, shopName: agg.byShop[shopId].shopName, qty: agg.byShop[shopId].qty, revenue: agg.byShop[shopId].revenue };
+    }).sort(function(a, b){ return b.qty - a.qty; });
+
+    if (ranked.length === 0){
+      listEl.innerHTML = '<div class="no-orders">No sales yet — once orders come in, top shops will show here.</div>';
+      return;
+    }
+
+    listEl.innerHTML = ranked.map(function(r, i){
+      return '<div class="rank-row" data-shopid="' + r.shopId + '">' +
+        '<div class="rank-number">#' + (i + 1) + '</div>' +
+        '<div class="rank-thumb">' + shopIconHtml(r.shopId, r.shopName) + '</div>' +
+        '<div style="flex:1;">' +
+          '<div class="rank-name">' + escapeHtml(r.shopName) + '</div>' +
+          '<div class="rank-sub">₹' + r.revenue.toLocaleString("en-IN") + ' in sales</div>' +
+        '</div>' +
+        '<div class="rank-metric">' + r.qty + ' sold</div>' +
+      '</div>';
+    }).join("");
+
+    listEl.querySelectorAll(".rank-row").forEach(function(row){
+      row.addEventListener("click", function(){
+        var shop = shopsRegistry[row.dataset.shopid];
+        if (shop){ closeSheet(topMarketsSheet); openShopProfile(shop); }
+      });
+    });
+  } catch (err){
+    listEl.innerHTML = '<div class="no-orders">Could not load sales data right now.</div>';
+    console.error(err);
+  }
+});
+
+document.getElementById("menuTopProductsBtn").addEventListener("click", async function(){
+  closeMenu();
+  var listEl = document.getElementById("topProductsListBox");
+  listEl.innerHTML = '<div class="no-orders">Crunching sales data…</div>';
+  openSheet(topProductsSheet);
+
+  try {
+    var agg = await computeSalesAggregates();
+    var ranked = Object.keys(agg.byProduct).map(function(key){ return agg.byProduct[key]; })
+      .sort(function(a, b){ return b.qty - a.qty; })
+      .slice(0, 15);
+
+    if (ranked.length === 0){
+      listEl.innerHTML = '<div class="no-orders">No sales yet — once orders come in, top products will show here.</div>';
+      return;
+    }
+
+    listEl.innerHTML = ranked.map(function(p, i){
+      return '<div class="rank-row" data-shopid="' + p.shopId + '">' +
+        '<div class="rank-number">#' + (i + 1) + '</div>' +
+        '<div class="rank-thumb">' + (p.photoURL ? '<img src="' + p.photoURL + '" alt="">' : '🛒') + '</div>' +
+        '<div style="flex:1;">' +
+          '<div class="rank-name">' + escapeHtml(p.name) + '</div>' +
+          '<div class="rank-sub">' + escapeHtml(p.shopName) + '</div>' +
+        '</div>' +
+        '<div class="rank-metric">' + p.qty + ' sold</div>' +
+      '</div>';
+    }).join("");
+
+    listEl.querySelectorAll(".rank-row").forEach(function(row){
+      row.addEventListener("click", function(){
+        var shop = shopsRegistry[row.dataset.shopid];
+        if (shop){ closeSheet(topProductsSheet); openShopProfile(shop); }
+      });
+    });
+  } catch (err){
+    listEl.innerHTML = '<div class="no-orders">Could not load sales data right now.</div>';
+    console.error(err);
+  }
+});
+
+document.getElementById("menuTrendingBtn").addEventListener("click", async function(){
+  closeMenu();
+  var listEl = document.getElementById("trendingListBox");
+  listEl.innerHTML = '<div class="no-orders">Finding new arrivals…</div>';
+  openSheet(trendingSheet);
+
+  try {
+    var realShops = Object.keys(shopsRegistry)
+      .map(function(k){ return shopsRegistry[k]; })
+      .filter(function(s){ return !!s.id; });
+
+    var allNew = [];
+    for (var i = 0; i < realShops.length; i++){
+      var shop = realShops[i];
+      try {
+        var q = window.EHUB.query(
+          window.EHUB.collection(window.EHUB.db, "shops", shop.id, "products"),
+          window.EHUB.orderBy("createdAt", "desc")
+        );
+        var snap = await window.EHUB.getDocs(q);
+        snap.forEach(function(docSnap){
+          var p = docSnap.data();
+          allNew.push({
+            name: p.name, price: p.price, unit: p.unit || "", photoURL: p.photoURL || "",
+            shopId: shop.id, shopName: shop.name,
+            createdAtMs: p.createdAt && p.createdAt.toDate ? p.createdAt.toDate().getTime() : 0
+          });
+        });
+      } catch (innerErr){
+        console.warn("Could not load products for", shop.name, innerErr);
+      }
+    }
+
+    allNew.sort(function(a, b){ return b.createdAtMs - a.createdAtMs; });
+    var newest = allNew.slice(0, 15);
+
+    if (newest.length === 0){
+      listEl.innerHTML = '<div class="no-orders">No products listed yet — new arrivals will show here.</div>';
+      return;
+    }
+
+    listEl.innerHTML = newest.map(function(p){
+      var priceText = "₹" + Number(p.price || 0).toLocaleString("en-IN") + (p.unit ? " " + escapeHtml(p.unit) : "");
+      return '<div class="rank-row" data-shopid="' + p.shopId + '">' +
+        '<div class="rank-thumb">' + (p.photoURL ? '<img src="' + p.photoURL + '" alt="">' : '🛒') + '</div>' +
+        '<div style="flex:1;">' +
+          '<div class="rank-name">' + escapeHtml(p.name) + '</div>' +
+          '<div class="rank-sub">' + escapeHtml(p.shopName) + '<br><span class="new-badge">NEW</span></div>' +
+        '</div>' +
+        '<div class="rank-metric">' + priceText + '</div>' +
+      '</div>';
+    }).join("");
+
+    listEl.querySelectorAll(".rank-row").forEach(function(row){
+      row.addEventListener("click", function(){
+        var shop = shopsRegistry[row.dataset.shopid];
+        if (shop){ closeSheet(trendingSheet); openShopProfile(shop); }
+      });
+    });
+  } catch (err){
+    listEl.innerHTML = '<div class="no-orders">Could not load new arrivals right now.</div>';
+    console.error(err);
+  }
+});
+
+document.getElementById("topMarketsCloseBtn").addEventListener("click", function(){ closeSheet(topMarketsSheet); });
+document.getElementById("topProductsCloseBtn").addEventListener("click", function(){ closeSheet(topProductsSheet); });
+document.getElementById("trendingCloseBtn").addEventListener("click", function(){ closeSheet(trendingSheet); });
 
 async function refreshOwnedShops(){
   var shopSection = document.getElementById("menuShopSection");
@@ -1376,13 +1623,6 @@ document.getElementById("menuCartBtn").addEventListener("click", function(){
   closeMenu();
   renderCart();
   openSheet(cartSheet);
-});
-
-["menuTopMarketsBtn","menuTopProductsBtn","menuTrendingBtn"].forEach(function(id){
-  document.getElementById(id).addEventListener("click", function(){
-    closeMenu();
-    alert("Coming soon! This feature is still being built.");
-  });
 });
 
 var pinModeActive = false;
@@ -1790,20 +2030,12 @@ function buildProductCard(p, shop){
       '<div class="pc-price">' + priceText + '</div>' +
       (p.description ? '<div class="pc-desc">' + escapeHtml(p.description) + '</div>' : '') +
       (p.outOfStock ? '<div class="oos-badge">Out of Stock</div>' : '') +
-      (shop && shop.id && p._id && !p.outOfStock ? '<button type="button" class="pc-add-cart">+ Add to Cart</button>' : '') +
+      (shop && shop.id && p._id && !p.outOfStock ? '<div class="pc-cart-control"></div>' : '') +
       (isOwner && p._id ? '<button type="button" class="oos-toggle-btn" data-pid="' + p._id + '" data-shopid="' + shop.id + '" data-current="' + (p.outOfStock ? "1" : "0") + '">' + (p.outOfStock ? "Mark In Stock" : "Mark Out of Stock") + '</button>' : '') +
     '</div>';
 
   if (shop && shop.id && p._id && !p.outOfStock){
-    var addBtn = card.querySelector(".pc-add-cart");
-    if (addBtn){
-      addBtn.addEventListener("click", function(){
-        addToCart(shop.id, shop.name, p._id, p.name, Number(p.price || 0), p.unit || "", p.photoURL || "");
-        var original = addBtn.textContent;
-        addBtn.textContent = "Added ✓";
-        setTimeout(function(){ addBtn.textContent = original; }, 1200);
-      });
-    }
+    renderCartControl(card.querySelector(".pc-cart-control"), shop, p);
   }
 
   if (isOwner && p._id){
@@ -1828,6 +2060,47 @@ function buildProductCard(p, shop){
   }
 
   return card;
+}
+
+// Shows "+ Add to Cart", or a live − qty + stepper if the product is
+// already in the cart — matches the same control style used in the cart.
+function renderCartControl(el, shop, p){
+  if (!el) return;
+  var cart = loadCart();
+  var existing = cart.find(function(item){ return item.shopId === shop.id && item.productId === p._id; });
+
+  if (existing){
+    el.innerHTML =
+      '<div class="cart-qty" style="margin-top:6px;">' +
+        '<button type="button" class="pc-qty-dec">−</button>' +
+        '<span>' + existing.qty + '</span>' +
+        '<button type="button" class="pc-qty-inc">+</button>' +
+      '</div>';
+    el.querySelector(".pc-qty-dec").addEventListener("click", function(){
+      adjustCartQty(shop.id, p._id, -1);
+      renderCartControl(el, shop, p);
+    });
+    el.querySelector(".pc-qty-inc").addEventListener("click", function(){
+      adjustCartQty(shop.id, p._id, 1);
+      renderCartControl(el, shop, p);
+    });
+  } else {
+    el.innerHTML = '<button type="button" class="pc-add-cart">+ Add to Cart</button>';
+    el.querySelector(".pc-add-cart").addEventListener("click", function(){
+      addToCart(shop.id, shop.name, p._id, p.name, Number(p.price || 0), p.unit || "", p.photoURL || "");
+      el.innerHTML = '<button type="button" class="pc-add-cart" disabled>Added ✓</button>';
+      setTimeout(function(){ renderCartControl(el, shop, p); }, 700);
+    });
+  }
+}
+
+function adjustCartQty(shopId, productId, delta){
+  var cart = loadCart();
+  var idx = cart.findIndex(function(item){ return item.shopId === shopId && item.productId === productId; });
+  if (idx === -1) return;
+  cart[idx].qty += delta;
+  if (cart[idx].qty <= 0) cart.splice(idx, 1);
+  saveCart(cart);
 }
 
 // ---------------------------------------------------------------------------
@@ -2131,6 +2404,22 @@ function closePaymentFlow(){
   paymentOverlay.classList.remove("show");
 }
 
+// Confirms the order landed in Orders — shown for 30s, then fades on its
+// own. The order record itself is permanent; only this banner is temporary.
+var orderToastTimer = null;
+function showOrderToast(){
+  var toast = document.getElementById("orderToast");
+  toast.classList.add("show");
+  if (orderToastTimer) clearTimeout(orderToastTimer);
+  orderToastTimer = setTimeout(function(){ toast.classList.remove("show"); }, 30000);
+}
+document.getElementById("orderToastLink").addEventListener("click", function(){
+  document.getElementById("orderToast").classList.remove("show");
+  if (orderToastTimer){ clearTimeout(orderToastTimer); orderToastTimer = null; }
+  loadBuyerOrders();
+  openSheet(ordersSheet);
+});
+
 document.getElementById("payCancelBtn").addEventListener("click", closePaymentFlow);
 document.getElementById("payCancelBtn2").addEventListener("click", closePaymentFlow);
 
@@ -2215,6 +2504,8 @@ async function completeOrder(){
     });
     saveCart(remaining);
     renderCart();
+
+    showOrderToast();
   } catch (err){
     console.error("Could not save order:", err);
     // Still show success visually since the "payment" itself is a demo —
