@@ -205,14 +205,17 @@
 
   .cart-shop-group{padding:10px 18px 4px;}
   .cart-shop-name{font-size:12px;font-weight:800;color:var(--primary);margin-bottom:6px;}
-  .cart-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);}
-  .cart-row .cr-name{flex:1;font-size:12.5px;color:var(--textDark);}
-  .cart-row .cr-price{font-size:11.5px;color:var(--textMuted);margin-top:1px;}
-  .cart-qty{display:flex;align-items:center;gap:6px;}
+  .cart-row-flip{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);}
+  .cart-check{width:16px;height:16px;margin-top:4px;flex-shrink:0;accent-color:var(--primary2);}
+  .cr-thumb{width:52px;height:52px;border-radius:10px;background:var(--card);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden;}
+  .cr-thumb img{width:100%;height:100%;object-fit:cover;}
+  .cr-name{font-size:12.5px;color:var(--textDark);font-weight:700;}
+  .cr-unit-price{font-size:11px;color:var(--textMuted);margin-top:1px;}
+  .cr-line-total{font-size:13px;font-weight:800;color:var(--primary);white-space:nowrap;flex-shrink:0;}
+  .cart-qty{display:flex;align-items:center;gap:6px;margin-top:6px;}
   .cart-qty button{width:24px;height:24px;border-radius:6px;border:1px solid var(--line);background:#fff;font-size:14px;font-weight:800;cursor:pointer;color:var(--primary2);}
   .cart-qty span{min-width:16px;text-align:center;font-size:12.5px;font-weight:700;}
-  .cart-remove{background:none;border:none;color:#B3261E;font-size:11px;cursor:pointer;padding:2px 4px;}
-  .cart-shop-subtotal{display:flex;justify-content:space-between;font-size:11.5px;color:var(--textMuted);padding:6px 0 10px;}
+  .cart-remove{background:none;border:none;color:#B3261E;font-size:11px;cursor:pointer;padding:2px 4px;margin-left:4px;}
   .cart-summary{padding:14px 18px;border-top:2px solid var(--line);margin-top:6px;}
   .cart-summary-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--textDark);padding:3px 0;}
   .cart-summary-row.total{font-size:15px;font-weight:800;color:var(--primary);padding-top:8px;border-top:1px solid var(--line);margin-top:6px;}
@@ -502,6 +505,19 @@
   </div>
   <div class="sheet-body">
     <form id="productForm">
+      <div class="field">
+        <label>Product Photo <span class="hint">(optional, max 3MB)</span></label>
+        <div class="photo-upload-box" id="prodPhotoUploadBox">
+          <div id="prodPhotoPreviewWrap" style="display:none;">
+            <img id="prodPhotoPreviewImg" alt="Product photo preview">
+            <button type="button" id="prodPhotoRemoveBtn" class="photo-remove-btn">✕ Remove</button>
+          </div>
+          <label id="prodPhotoPickLabel" for="prodPhotoInput" class="photo-pick-label">
+            📷 Tap to add a product photo
+          </label>
+          <input id="prodPhotoInput" type="file" accept="image/*" style="display:none;">
+        </div>
+      </div>
       <div class="field">
         <label for="prodName">Product Name *</label>
         <input id="prodName" type="text" maxlength="60" placeholder="e.g. 5kW Solar Inverter" required>
@@ -1515,7 +1531,7 @@ function buildProductCard(p, shop){
   var isOwner = !!(shop && shop.id && currentUser && shop.ownerUid === currentUser.uid);
 
   card.innerHTML =
-    '<div class="pc-thumb">🛒</div>' +
+    '<div class="pc-thumb">' + (p.photoURL ? '<img src="' + p.photoURL + '" alt="">' : '🛒') + '</div>' +
     '<div style="flex:1;">' +
       '<div class="pc-name">' + escapeHtml(p.name) + '</div>' +
       '<div class="pc-price">' + priceText + '</div>' +
@@ -1529,7 +1545,7 @@ function buildProductCard(p, shop){
     var addBtn = card.querySelector(".pc-add-cart");
     if (addBtn){
       addBtn.addEventListener("click", function(){
-        addToCart(shop.id, shop.name, p._id, p.name, Number(p.price || 0), p.unit || "");
+        addToCart(shop.id, shop.name, p._id, p.name, Number(p.price || 0), p.unit || "", p.photoURL || "");
         var original = addBtn.textContent;
         addBtn.textContent = "Added ✓";
         setTimeout(function(){ addBtn.textContent = original; }, 1200);
@@ -1692,13 +1708,13 @@ function saveCart(cart){
   updateCartBadge();
 }
 
-function addToCart(shopId, shopName, productId, productName, price, unit){
+function addToCart(shopId, shopName, productId, productName, price, unit, photoURL){
   var cart = loadCart();
   var existing = cart.find(function(item){ return item.shopId === shopId && item.productId === productId; });
   if (existing){
     existing.qty += 1;
   } else {
-    cart.push({ shopId: shopId, shopName: shopName, productId: productId, name: productName, price: price, unit: unit, qty: 1 });
+    cart.push({ shopId: shopId, shopName: shopName, productId: productId, name: productName, price: price, unit: unit, photoURL: photoURL || "", qty: 1, selected: true });
   }
   saveCart(cart);
 }
@@ -1726,6 +1742,13 @@ function renderCart(){
     return;
   }
 
+  // Default any older cart items (saved before "selected" existed) to selected
+  var changed = false;
+  cart.forEach(function(item){
+    if (typeof item.selected === "undefined"){ item.selected = true; changed = true; }
+  });
+  if (changed) saveCart(cart);
+
   var byShop = {};
   cart.forEach(function(item){
     if (!byShop[item.shopId]) byShop[item.shopId] = { name: item.shopName, items: [] };
@@ -1733,57 +1756,68 @@ function renderCart(){
   });
 
   var itemsHtml = "";
-  var grandSubtotal = 0;
-  var shopCount = 0;
+  var selectedSubtotal = 0;
+  var selectedItemCount = 0;
+  var selectedShopIds = {};
 
   Object.keys(byShop).forEach(function(shopId){
-    shopCount++;
     var group = byShop[shopId];
-    var shopSubtotal = 0;
     itemsHtml += '<div class="cart-shop-group"><div class="cart-shop-name">' + escapeHtml(group.name) + '</div>';
     group.items.forEach(function(item){
       var lineTotal = item.price * item.qty;
-      shopSubtotal += lineTotal;
+      if (item.selected){
+        selectedSubtotal += lineTotal;
+        selectedItemCount += item.qty;
+        selectedShopIds[shopId] = true;
+      }
       itemsHtml +=
-        '<div class="cart-row">' +
-          '<div style="flex:1;">' +
+        '<div class="cart-row-flip">' +
+          '<input type="checkbox" class="cart-check" data-action="toggle" data-shop="' + shopId + '" data-product="' + item.productId + '"' + (item.selected ? " checked" : "") + '>' +
+          '<div class="cr-thumb">' + (item.photoURL ? '<img src="' + item.photoURL + '" alt="">' : '🛒') + '</div>' +
+          '<div style="flex:1;min-width:0;">' +
             '<div class="cr-name">' + escapeHtml(item.name) + '</div>' +
-            '<div class="cr-price">₹' + item.price.toLocaleString("en-IN") + (item.unit ? " " + escapeHtml(item.unit) : "") + ' × ' + item.qty + ' = ₹' + lineTotal.toLocaleString("en-IN") + '</div>' +
+            '<div class="cr-unit-price">₹' + item.price.toLocaleString("en-IN") + (item.unit ? " " + escapeHtml(item.unit) : "") + ' each</div>' +
+            '<div class="cart-qty">' +
+              '<button type="button" data-action="dec" data-shop="' + shopId + '" data-product="' + item.productId + '">−</button>' +
+              '<span>' + item.qty + '</span>' +
+              '<button type="button" data-action="inc" data-shop="' + shopId + '" data-product="' + item.productId + '">+</button>' +
+              '<button type="button" class="cart-remove" data-action="remove" data-shop="' + shopId + '" data-product="' + item.productId + '">Remove</button>' +
+            '</div>' +
           '</div>' +
-          '<div class="cart-qty">' +
-            '<button type="button" data-action="dec" data-shop="' + shopId + '" data-product="' + item.productId + '">−</button>' +
-            '<span>' + item.qty + '</span>' +
-            '<button type="button" data-action="inc" data-shop="' + shopId + '" data-product="' + item.productId + '">+</button>' +
-          '</div>' +
-          '<button type="button" class="cart-remove" data-action="remove" data-shop="' + shopId + '" data-product="' + item.productId + '">Remove</button>' +
+          '<div class="cr-line-total">₹' + lineTotal.toLocaleString("en-IN") + '</div>' +
         '</div>';
     });
-    itemsHtml += '<div class="cart-shop-subtotal"><span>Shop subtotal</span><span>₹' + shopSubtotal.toLocaleString("en-IN") + '</span></div></div>';
-    grandSubtotal += shopSubtotal;
+    itemsHtml += '</div>';
   });
 
   itemsBox.innerHTML = itemsHtml;
 
+  var shopCount = Object.keys(selectedShopIds).length;
   var deliveryTotal = shopCount * DELIVERY_FEE_PER_SHOP;
-  var grandTotal = grandSubtotal + deliveryTotal;
+  var grandTotal = selectedSubtotal + deliveryTotal;
 
-  summaryBox.innerHTML =
-    '<div class="cart-summary">' +
-      '<div class="cart-summary-row"><span>Subtotal</span><span>₹' + grandSubtotal.toLocaleString("en-IN") + '</span></div>' +
-      '<div class="cart-summary-row"><span>Delivery (' + shopCount + ' shop' + (shopCount > 1 ? 's' : '') + ' × ₹' + DELIVERY_FEE_PER_SHOP + ')</span><span>₹' + deliveryTotal.toLocaleString("en-IN") + '</span></div>' +
-      '<div class="cart-summary-row total"><span>Grand Total</span><span>₹' + grandTotal.toLocaleString("en-IN") + '</span></div>' +
-      '<button type="button" class="cart-checkout-btn" id="cartCheckoutBtn">Checkout</button>' +
-    '</div>';
+  if (selectedItemCount === 0){
+    summaryBox.innerHTML = '<div class="cart-summary"><div class="cart-empty" style="padding:10px 0;">Select items above to see your total.</div></div>';
+  } else {
+    summaryBox.innerHTML =
+      '<div class="cart-summary">' +
+        '<div class="cart-summary-row"><span>Selected items</span><span>' + selectedItemCount + '</span></div>' +
+        '<div class="cart-summary-row"><span>Subtotal</span><span>₹' + selectedSubtotal.toLocaleString("en-IN") + '</span></div>' +
+        '<div class="cart-summary-row"><span>Delivery (' + shopCount + ' shop' + (shopCount > 1 ? 's' : '') + ' × ₹' + DELIVERY_FEE_PER_SHOP + ')</span><span>₹' + deliveryTotal.toLocaleString("en-IN") + '</span></div>' +
+        '<div class="cart-summary-row total"><span>Total</span><span>₹' + grandTotal.toLocaleString("en-IN") + '</span></div>' +
+        '<button type="button" class="cart-checkout-btn" id="cartCheckoutBtn">Buy (' + selectedItemCount + ' item' + (selectedItemCount > 1 ? 's' : '') + ') · ₹' + grandTotal.toLocaleString("en-IN") + '</button>' +
+      '</div>';
 
-  document.getElementById("cartCheckoutBtn").addEventListener("click", function(){
-    alert("Checkout & payment coming soon! Your order summary is ready — total ₹" + grandTotal.toLocaleString("en-IN") + ".");
-  });
+    document.getElementById("cartCheckoutBtn").addEventListener("click", function(){
+      alert("Demo payment flow coming very soon! Your order total is ready — ₹" + grandTotal.toLocaleString("en-IN") + " for " + selectedItemCount + " item(s).");
+    });
+  }
 
-  itemsBox.querySelectorAll("[data-action]").forEach(function(btn){
-    btn.addEventListener("click", function(){
-      var action = btn.dataset.action;
-      var shopId = btn.dataset.shop;
-      var productId = btn.dataset.product;
+  itemsBox.querySelectorAll("[data-action]").forEach(function(el){
+    el.addEventListener(el.tagName === "INPUT" ? "change" : "click", function(){
+      var action = el.dataset.action;
+      var shopId = el.dataset.shop;
+      var productId = el.dataset.product;
       var cart = loadCart();
       var idx = cart.findIndex(function(item){ return item.shopId === shopId && item.productId === productId; });
       if (idx === -1) return;
@@ -1795,6 +1829,8 @@ function renderCart(){
         if (cart[idx].qty <= 0) cart.splice(idx, 1);
       } else if (action === "remove"){
         cart.splice(idx, 1);
+      } else if (action === "toggle"){
+        cart[idx].selected = el.checked;
       }
       saveCart(cart);
       renderCart();
@@ -1828,6 +1864,49 @@ document.getElementById("productCloseBtn").addEventListener("click", function(){
   }
 });
 
+// ---------------------------------------------------------------------------
+// Product photo picker — same pattern as the shop photo picker
+// ---------------------------------------------------------------------------
+var selectedProductPhotoFile = null;
+
+document.getElementById("prodPhotoPickLabel").addEventListener("click", function(){
+  document.getElementById("prodPhotoInput").click();
+});
+
+document.getElementById("prodPhotoInput").addEventListener("change", function(e){
+  var file = e.target.files && e.target.files[0];
+  if (!file) return;
+
+  if (file.size > 3 * 1024 * 1024){
+    alert("That photo is too large. Please choose one under 3MB.");
+    this.value = "";
+    return;
+  }
+
+  selectedProductPhotoFile = file;
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    document.getElementById("prodPhotoPreviewImg").src = ev.target.result;
+    document.getElementById("prodPhotoPreviewWrap").style.display = "block";
+    document.getElementById("prodPhotoPickLabel").style.display = "none";
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById("prodPhotoRemoveBtn").addEventListener("click", function(){
+  selectedProductPhotoFile = null;
+  document.getElementById("prodPhotoInput").value = "";
+  document.getElementById("prodPhotoPreviewWrap").style.display = "none";
+  document.getElementById("prodPhotoPickLabel").style.display = "flex";
+});
+
+function resetProductPhotoPicker(){
+  selectedProductPhotoFile = null;
+  document.getElementById("prodPhotoInput").value = "";
+  document.getElementById("prodPhotoPreviewWrap").style.display = "none";
+  document.getElementById("prodPhotoPickLabel").style.display = "flex";
+}
+
 document.getElementById("productForm").addEventListener("submit", async function(e){
   e.preventDefault();
 
@@ -1858,6 +1937,16 @@ document.getElementById("productForm").addEventListener("submit", async function
   };
 
   try {
+    if (selectedProductPhotoFile){
+      saveBtn.textContent = "Uploading photo…";
+      var uid = currentUser ? currentUser.uid : "anon";
+      var path = "productPhotos/" + uid + "/" + Date.now() + "_" + selectedProductPhotoFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      var fileRef = window.EHUB.storageRef(window.EHUB.storage, path);
+      await withTimeout(window.EHUB.uploadBytes(fileRef, selectedProductPhotoFile), 20000, "Photo upload");
+      newProduct.photoURL = await withTimeout(window.EHUB.getDownloadURL(fileRef), 15000, "Fetching photo link");
+      saveBtn.textContent = "Saving…";
+    }
+
     await window.EHUB.addDoc(
       window.EHUB.collection(window.EHUB.db, "shops", currentProductShopId, "products"),
       newProduct
@@ -1866,6 +1955,7 @@ document.getElementById("productForm").addEventListener("submit", async function
     saveBtn.disabled = false;
     saveBtn.textContent = originalLabel;
     document.getElementById("productForm").reset();
+    resetProductPhotoPicker();
     closeSheet(productSheet);
 
     if (currentProfileShop && currentProfileShop.id === currentProductShopId){
@@ -1876,7 +1966,7 @@ document.getElementById("productForm").addEventListener("submit", async function
   } catch (err){
     saveBtn.disabled = false;
     saveBtn.textContent = originalLabel;
-    errorBox.textContent = "Could not save the product. Please check your connection and try again.";
+    errorBox.textContent = err.message || "Could not save the product. Please check your connection and try again.";
     errorBox.classList.add("show");
     console.error(err);
   }
