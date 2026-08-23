@@ -237,6 +237,7 @@
   .pay-total-label{font-size:12px;color:var(--textMuted);margin-top:4px;}
   .pay-total-amount{font-size:30px;font-weight:800;color:var(--primary);margin:4px 0 8px;}
   .pay-demo-link{background:none;border:none;color:#1F5FBF;font-size:12px;font-weight:700;text-decoration:underline;cursor:pointer;margin-top:16px;padding:4px;}
+  .pay-demo-hint{font-size:11px;color:var(--textMuted);margin-top:10px;text-align:center;}
   .pay-qr-label{font-size:12.5px;color:var(--textDark);font-weight:700;margin-bottom:10px;}
   .pay-qr-box{border-radius:10px;border:1px solid var(--line);}
   .pay-qr-hint{font-size:11.5px;color:var(--textMuted);margin-top:10px;}
@@ -259,13 +260,16 @@
   .oi-meta{font-size:11px;color:var(--textMuted);margin-top:1px;}
   .order-total-row{display:flex;justify-content:space-between;padding:10px 14px;font-size:13px;font-weight:800;color:var(--primary);border-top:1px solid var(--line);}
   .order-tracker-v{padding:12px 16px 14px;}
-  .tracker-v-step{display:flex;align-items:center;gap:10px;padding:5px 0;}
-  .tracker-v-step .tv-dot{width:18px;height:18px;border-radius:50%;background:var(--line);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-  .tracker-v-step.done .tv-dot{background:var(--primary2);}
-  .tracker-v-step.current .tv-dot{background:var(--accent);color:#3a2a00;}
-  .tracker-v-label{font-size:12px;color:var(--textMuted);}
+  .tracker-v-step{display:flex;align-items:flex-start;gap:10px;padding:5px 0;position:relative;}
+  .tracker-v-step:not(:last-child)::after{content:'';position:absolute;left:8px;top:23px;width:2px;height:calc(100% - 6px);background:var(--line);}
+  .tracker-v-step.done:not(:last-child)::after{background:#1F5FBF;}
+  .tracker-v-step .tv-dot{width:18px;height:18px;border-radius:50%;background:var(--line);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;z-index:1;}
+  .tracker-v-step.done .tv-dot{background:#1F5FBF;}
+  .tracker-v-step.current .tv-dot{background:#1F5FBF;box-shadow:0 0 0 4px rgba(31,95,191,0.18);}
+  .tracker-v-label{font-size:12px;color:var(--textMuted);padding-top:1px;}
   .tracker-v-step.done .tracker-v-label{color:var(--textDark);font-weight:700;}
-  .tracker-v-step.current .tracker-v-label{color:var(--primary);font-weight:800;}
+  .tracker-v-step.current .tracker-v-label{color:#1F5FBF;font-weight:800;}
+  .order-delivered-line{padding:12px 16px 14px;font-size:13px;font-weight:700;color:#1F5FBF;display:flex;align-items:center;gap:6px;}
   .tv-now{font-size:10px;color:var(--accentDeep);font-weight:700;}
   .order-buyer-info{padding:8px 14px;font-size:11.5px;color:var(--textMuted);background:var(--bg);}
   .no-orders{padding:40px 18px;text-align:center;color:var(--textMuted);font-size:13px;}
@@ -709,8 +713,11 @@
     <div id="payStatePay" class="pay-state" style="display:none;">
       <p class="pay-total-label">Amount to Pay</p>
       <p class="pay-total-amount" id="payAmountText">₹0</p>
-      <button type="button" id="payCancelBtn2" class="pay-btn-secondary" style="margin-top:18px;">Cancel</button>
-      <button type="button" id="payDemoPaymentLink" class="pay-demo-link">Demo Payment</button>
+      <div class="pay-actions">
+        <button type="button" id="payCancelBtn2" class="pay-btn-secondary">Cancel</button>
+        <button type="button" id="payDemoPaymentLink" class="pay-btn-primary">Pay Now</button>
+      </div>
+      <p class="pay-demo-hint">Demo simulation — no real payment is processed.</p>
     </div>
 
     <div id="payStateQR" class="pay-state" style="display:none;">
@@ -1082,6 +1089,14 @@ var shopActionSheet = document.getElementById("shopActionSheet");
 var reviewSheet = document.getElementById("reviewSheet");
 var ordersSheet = document.getElementById("ordersSheet");
 var sellerOrdersSheet = document.getElementById("sellerOrdersSheet");
+var ordersRefreshTimer = null;
+function startOrdersRefresh(reloadFn){
+  stopOrdersRefresh();
+  ordersRefreshTimer = setInterval(reloadFn, 15000);
+}
+function stopOrdersRefresh(){
+  if (ordersRefreshTimer){ clearInterval(ordersRefreshTimer); ordersRefreshTimer = null; }
+}
 
 var activeSheet = null;
 var lastSavedShopId = null;
@@ -1231,12 +1246,17 @@ function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
     '</div>';
   }).join("");
 
-  var trackerHtml = '<div class="order-tracker-v">' + TRACKER_STAGES.map(function(label, i){
-    return '<div class="tracker-v-step' + (i <= stageIdx ? ' done' : '') + (i === stageIdx ? ' current' : '') + '">' +
-      '<div class="tv-dot">' + (i < stageIdx ? '✓' : (i === stageIdx ? '●' : '')) + '</div>' +
-      '<div class="tracker-v-label">' + label + (i === stageIdx ? ' <span class="tv-now">(current)</span>' : '') + '</div>' +
-    '</div>';
-  }).join("") + '</div>';
+  var secondsElapsed = createdAtDate ? (Date.now() - createdAtDate.getTime()) / 1000 : 0;
+  var trackerFinished = secondsElapsed >= TRACKER_STAGES.length * 30;
+
+  var trackerHtml = trackerFinished
+    ? '<div class="order-delivered-line">✅ Delivered — order complete</div>'
+    : '<div class="order-tracker-v">' + TRACKER_STAGES.map(function(label, i){
+        return '<div class="tracker-v-step' + (i <= stageIdx ? ' done' : '') + (i === stageIdx ? ' current' : '') + '">' +
+          '<div class="tv-dot">' + (i < stageIdx ? '✓' : (i === stageIdx ? '●' : '')) + '</div>' +
+          '<div class="tracker-v-label">' + label + (i === stageIdx ? ' <span class="tv-now">(current)</span>' : '') + '</div>' +
+        '</div>';
+      }).join("") + '</div>';
 
   var buyerInfoHtml = showBuyerInfo
     ? '<div class="order-buyer-info">👤 ' + escapeHtml(order.buyerName || "Guest") + '</div>'
@@ -1265,18 +1285,23 @@ async function loadBuyerOrders(){
   try {
     var q = window.EHUB.query(
       window.EHUB.collection(window.EHUB.db, "orders"),
-      window.EHUB.where("buyerUid", "==", currentUser.uid),
-      window.EHUB.orderBy("createdAt", "desc")
+      window.EHUB.where("buyerUid", "==", currentUser.uid)
     );
     var snap = await window.EHUB.getDocs(q);
     if (snap.empty){
       listEl.innerHTML = '<div class="no-orders">No orders yet — items you buy will show up here with delivery tracking.</div>';
       return;
     }
+    var orderDocs = [];
+    snap.forEach(function(docSnap){ orderDocs.push({ id: docSnap.id, data: docSnap.data() }); });
+    orderDocs.sort(function(a, b){
+      var aTime = a.data.createdAt && a.data.createdAt.toMillis ? a.data.createdAt.toMillis() : 0;
+      var bTime = b.data.createdAt && b.data.createdAt.toMillis ? b.data.createdAt.toMillis() : 0;
+      return bTime - aTime;
+    });
     listEl.innerHTML = "";
-    snap.forEach(function(docSnap){
-      var order = docSnap.data();
-      listEl.innerHTML += buildOrderCard(docSnap.id, order, order.items || [], false);
+    orderDocs.forEach(function(o){
+      listEl.innerHTML += buildOrderCard(o.id, o.data, o.data.items || [], false);
     });
   } catch (err){
     listEl.innerHTML = '<div class="no-orders">Could not load your orders right now.</div>';
@@ -1289,26 +1314,36 @@ async function openSellerOrders(shop){
   var listEl = document.getElementById("sellerOrdersListBox");
   listEl.innerHTML = '<div class="no-orders">Loading orders…</div>';
   openSheet(sellerOrdersSheet);
+  await refreshSellerOrders(shop);
+  startOrdersRefresh(function(){ refreshSellerOrders(shop); });
+}
 
+async function refreshSellerOrders(shop){
+  var listEl = document.getElementById("sellerOrdersListBox");
   if (!shop.id) return;
 
   try {
     var q = window.EHUB.query(
       window.EHUB.collection(window.EHUB.db, "orders"),
-      window.EHUB.where("shopIds", "array-contains", shop.id),
-      window.EHUB.orderBy("createdAt", "desc")
+      window.EHUB.where("shopIds", "array-contains", shop.id)
     );
     var snap = await window.EHUB.getDocs(q);
     if (snap.empty){
       listEl.innerHTML = '<div class="no-orders">No orders for this shop yet.</div>';
       return;
     }
+    var orderDocs = [];
+    snap.forEach(function(docSnap){ orderDocs.push({ id: docSnap.id, data: docSnap.data() }); });
+    orderDocs.sort(function(a, b){
+      var aTime = a.data.createdAt && a.data.createdAt.toMillis ? a.data.createdAt.toMillis() : 0;
+      var bTime = b.data.createdAt && b.data.createdAt.toMillis ? b.data.createdAt.toMillis() : 0;
+      return bTime - aTime;
+    });
     listEl.innerHTML = "";
-    snap.forEach(function(docSnap){
-      var order = docSnap.data();
-      var itemsForThisShop = (order.items || []).filter(function(it){ return it.shopId === shop.id; });
+    orderDocs.forEach(function(o){
+      var itemsForThisShop = (o.data.items || []).filter(function(it){ return it.shopId === shop.id; });
       if (itemsForThisShop.length === 0) return;
-      listEl.innerHTML += buildOrderCard(docSnap.id, order, itemsForThisShop, true);
+      listEl.innerHTML += buildOrderCard(o.id, o.data, itemsForThisShop, true);
     });
     if (!listEl.innerHTML){
       listEl.innerHTML = '<div class="no-orders">No orders for this shop yet.</div>';
@@ -1321,15 +1356,18 @@ async function openSellerOrders(shop){
 
 document.getElementById("ordersCloseBtn").addEventListener("click", function(){
   closeSheet(ordersSheet);
+  stopOrdersRefresh();
 });
 document.getElementById("sellerOrdersCloseBtn").addEventListener("click", function(){
   closeSheet(sellerOrdersSheet);
+  stopOrdersRefresh();
 });
 
 document.getElementById("menuOrdersBtn").addEventListener("click", function(){
   closeMenu();
   loadBuyerOrders();
   openSheet(ordersSheet);
+  startOrdersRefresh(loadBuyerOrders);
 });
 
 // ---------------------------------------------------------------------------
@@ -2418,6 +2456,7 @@ document.getElementById("orderToastLink").addEventListener("click", function(){
   if (orderToastTimer){ clearTimeout(orderToastTimer); orderToastTimer = null; }
   loadBuyerOrders();
   openSheet(ordersSheet);
+  startOrdersRefresh(loadBuyerOrders);
 });
 
 document.getElementById("payCancelBtn").addEventListener("click", closePaymentFlow);
