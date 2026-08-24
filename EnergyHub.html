@@ -565,7 +565,7 @@
     <div class="profile-head">
       <div class="profile-head-top">
         <div class="profile-avatar-wrap" id="profAvatarWrap">
-          <div class="profile-avatar" id="profAvatar">🏬</div>
+          <div class="profile-avatar" id="profAvatar"></div>
           <button type="button" id="profAvatarBadge" class="avatar-edit-badge" style="display:none;">📷</button>
         </div>
         <div style="flex:1;">
@@ -887,10 +887,18 @@ document.getElementById("layerToggleBtn").addEventListener("click", function(){
   }
 });
 
+// Default shop icon shown whenever a shop hasn't uploaded its own photo —
+// a plain storefront illustration (drawn as SVG, not a stock image, so
+// there's no license/watermark issue).
+var DEFAULT_SHOP_ICON = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj4KICA8cmVjdCB4PSIxMCIgeT0iOCIgd2lkdGg9IjUwIiBoZWlnaHQ9IjE0IiBmaWxsPSIjM0ZDMUIwIi8+CiAgPHJlY3QgeD0iNjAiIHk9IjgiIHdpZHRoPSI1MCIgaGVpZ2h0PSIxNCIgZmlsbD0iIzFFOEY4MiIvPgogIDxyZWN0IHg9IjEwIiB5PSIyMiIgd2lkdGg9IjIwIiBoZWlnaHQ9IjE4IiBmaWxsPSIjRDY0ODNGIi8+CiAgPHJlY3QgeD0iMzAiIHk9IjIyIiB3aWR0aD0iMjAiIGhlaWdodD0iMTgiIGZpbGw9IiNGM0UzQzQiLz4KICA8cmVjdCB4PSI1MCIgeT0iMjIiIHdpZHRoPSIyMCIgaGVpZ2h0PSIxOCIgZmlsbD0iIzJFOEZDNyIvPgogIDxyZWN0IHg9IjcwIiB5PSIyMiIgd2lkdGg9IjIwIiBoZWlnaHQ9IjE4IiBmaWxsPSIjRjNFM0M0Ii8+CiAgPHJlY3QgeD0iOTAiIHk9IjIyIiB3aWR0aD0iMjAiIGhlaWdodD0iMTgiIGZpbGw9IiNENjQ4M0YiLz4KICA8cGF0aCBkPSJNMTAsNDAgQTEwLDEwIDAgMCAwIDMwLDQwIFoiIGZpbGw9IiNENjQ4M0YiLz4KICA8cGF0aCBkPSJNMzAsNDAgQTEwLDEwIDAgMCAwIDUwLDQwIFoiIGZpbGw9IiNGM0UzQzQiLz4KICA8cGF0aCBkPSJNNTAsNDAgQTEwLDEwIDAgMCAwIDcwLDQwIFoiIGZpbGw9IiMyRThGQzciLz4KICA8cGF0aCBkPSJNNzAsNDAgQTEwLDEwIDAgMCAwIDkwLDQwIFoiIGZpbGw9IiNGM0UzQzQiLz4KICA8cGF0aCBkPSJNOTAsNDAgQTEwLDEwIDAgMCAwIDExMCw0MCBaIiBmaWxsPSIjRDY0ODNGIi8+CiAgPHJlY3QgeD0iMTIiIHk9IjQwIiB3aWR0aD0iOTYiIGhlaWdodD0iNTQiIGZpbGw9IiNFODkzM0MiLz4KICA8cmVjdCB4PSIyNCIgeT0iNDgiIHdpZHRoPSIyNiIgaGVpZ2h0PSIyMiIgcng9IjIiIGZpbGw9IiMyRThGQzciLz4KICA8cmVjdCB4PSIzNS41IiB5PSI0OCIgd2lkdGg9IjMiIGhlaWdodD0iMjIiIGZpbGw9IiNGM0UzQzQiLz4KICA8cmVjdCB4PSIyNCIgeT0iNTcuNSIgd2lkdGg9IjI2IiBoZWlnaHQ9IjMiIGZpbGw9IiNGM0UzQzQiLz4KICA8cmVjdCB4PSI3MCIgeT0iNDgiIHdpZHRoPSIyNiIgaGVpZ2h0PSIyMiIgcng9IjIiIGZpbGw9IiMyRThGQzciLz4KICA8cmVjdCB4PSI4MS41IiB5PSI0OCIgd2lkdGg9IjMiIGhlaWdodD0iMjIiIGZpbGw9IiNGM0UzQzQiLz4KICA8cmVjdCB4PSI3MCIgeT0iNTcuNSIgd2lkdGg9IjI2IiBoZWlnaHQ9IjMiIGZpbGw9IiNGM0UzQzQiLz4KICA8cmVjdCB4PSI1MCIgeT0iNjgiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyNiIgcng9IjIiIGZpbGw9IiNDMDM5MkIiLz4KICA8Y2lyY2xlIGN4PSI2NCIgY3k9IjgxIiByPSIxLjYiIGZpbGw9IiNGM0UzQzQiLz4KICA8cmVjdCB4PSI5IiB5PSI5NCIgd2lkdGg9IjEwMiIgaGVpZ2h0PSI4IiByeD0iMSIgZmlsbD0iIzZCMkUyOCIvPgo8L3N2Zz4K";
+function shopFallbackIconHtml(){
+  return '<img src="' + DEFAULT_SHOP_ICON + '" alt="" style="width:100%;height:100%;object-fit:cover;">';
+}
+
 function buildShopDivIcon(shop){
   var inner = shop.photoURL
     ? '<img src="' + shop.photoURL + '" style="width:100%;height:100%;object-fit:cover;">'
-    : '<span style="color:#fff;font-weight:800;font-size:15px;">' + escapeHtml(initialOfShop(shop.name)) + '</span>';
+    : shopFallbackIconHtml();
   return L.divIcon({
     className: '',
     html: '<div style="width:34px;height:34px;border-radius:50%;overflow:hidden;background:#39A845;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.35);border:2.5px solid #fff;">' + inner + '</div>',
@@ -1407,7 +1415,7 @@ function shopIconHtml(shopId, shopName){
   if (shop && shop.photoURL){
     return '<img src="' + shop.photoURL + '" alt="">';
   }
-  return escapeHtml(initialOfShop(shopName));
+  return shopFallbackIconHtml();
 }
 
 async function computeSalesAggregates(){
@@ -1616,7 +1624,7 @@ async function refreshOwnedShops(){
         row.style.background = SHOP_COLORS[idx % SHOP_COLORS.length];
         row.style.cursor = "pointer";
         row.innerHTML =
-          '<div class="menu-shop-icon">' + (shopData.photoURL ? '<img src="' + shopData.photoURL + '" alt="">' : '🏬') + '</div>' +
+          '<div class="menu-shop-icon">' + (shopData.photoURL ? '<img src="' + shopData.photoURL + '" alt="">' : shopFallbackIconHtml()) + '</div>' +
           '<div class="menu-shop-name">' + escapeHtml(shopData.name) + '</div>';
         row.addEventListener("click", function(){
           openShopActionSheet(shopForAction);
@@ -1961,7 +1969,7 @@ window.EHUB_openProfile = function(regId){
 };
 
 function initialOfShop(name){
-  return name ? name.trim().charAt(0).toUpperCase() : "🏬";
+  return name ? name.trim().charAt(0).toUpperCase() : "";
 }
 
 async function openShopProfile(shop){
@@ -1972,7 +1980,7 @@ async function openShopProfile(shop){
   if (shop.photoURL){
     avatarEl.innerHTML = '<img src="' + shop.photoURL + '" alt="">';
   } else {
-    avatarEl.textContent = initialOfShop(shop.name);
+    avatarEl.innerHTML = shopFallbackIconHtml();
   }
 
   var avatarBadge = document.getElementById("profAvatarBadge");
