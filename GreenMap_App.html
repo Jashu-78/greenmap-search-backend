@@ -105,7 +105,9 @@
   #homeScreen .loc-temp-pill{display:flex;align-items:center;gap:5px;background:var(--card);color:var(--primary);border:1px solid var(--line);border-radius:999px;padding:6px 11px;font-size:11.5px;font-weight:600;white-space:nowrap;flex-shrink:0;}
   #homeScreen .loc-temp-pill .sep{opacity:.5;}
   #homeScreen .bell-btn{width:28px;height:28px;border-radius:8px;background:var(--primaryDeep);display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;font-size:13px;}
-  #homeScreen .bell-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--accent);}
+  #homeScreen .bell-dot{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 3px;border-radius:999px;background:#E8433B;color:#fff;font-size:9.5px;font-weight:800;line-height:16px;text-align:center;display:none;box-shadow:0 0 0 2px var(--primaryDeep);}
+  #homeScreen .bell-dot.show{display:block;}
+  #homeScreen .notif-empty{padding:32px 20px;text-align:center;color:var(--textMuted);font-size:13px;}
 
   #homeScreen .white-section{background:#fff;padding:22px 20px 24px;}
   #homeScreen .white-inner{max-width:1240px;margin:0 auto;}
@@ -209,7 +211,7 @@
       </div>
     </div>
     <div class="topbar-right">
-      <div class="bell-btn" onclick="toggleNotifications(true)">🔔<span class="bell-dot"></span></div>
+      <div class="bell-btn" onclick="toggleNotifications(true)">🔔<span class="bell-dot" id="bellBadge"></span></div>
     </div>
   </div>
 </div>
@@ -269,28 +271,8 @@
     <span>Notifications</span>
     <button class="notif-close" onclick="toggleNotifications(false)">✕</button>
   </div>
-  <div class="notif-items">
-    <div class="notif-item">
-      <div class="notif-icon">☀️</div>
-      <div class="notif-text">
-        <div class="notif-title">High sun exposure today</div>
-        <div class="notif-sub">Great day for solar generation in Austin, TX</div>
-      </div>
-    </div>
-    <div class="notif-item">
-      <div class="notif-icon">💡</div>
-      <div class="notif-text">
-        <div class="notif-title">New recommendation ready</div>
-        <div class="notif-sub">We found a solar kit that fits your home</div>
-      </div>
-    </div>
-    <div class="notif-item">
-      <div class="notif-icon">📊</div>
-      <div class="notif-text">
-        <div class="notif-title">Suitability score updated</div>
-        <div class="notif-sub">Your score changed from 79 to 82</div>
-      </div>
-    </div>
+  <div class="notif-items" id="notifItemsList">
+    <div class="notif-empty">Loading notifications…</div>
   </div>
 </div>
 
@@ -315,7 +297,21 @@
       <div class="settings-item-left">🌐 Language</div>
       <div class="settings-item-left"><span class="settings-item-value" id="currentLangLabel">English</span><span class="settings-chevron">›</span></div>
     </div>
+    <div class="settings-item" onclick="toggleSettings(false); toggleSound(true);">
+      <div class="settings-item-left">🔔 Notification Sound</div>
+      <div class="settings-item-left"><span class="settings-item-value" id="currentSoundLabel">Chime</span><span class="settings-chevron">›</span></div>
+    </div>
   </div>
+</div>
+
+<div id="soundOverlay" class="notif-overlay" onclick="toggleSound(false)"></div>
+<div id="soundPanel" class="notif-panel">
+  <div class="notif-header">
+    <span>Notification Sound</span>
+    <button class="notif-close" onclick="toggleSound(false)">✕</button>
+  </div>
+  <div id="soundList" style="flex:1;overflow-y:auto;"></div>
+  <div class="lang-note" id="addDeviceSoundRow" style="cursor:pointer;">+ 🔔 Add sound for device</div>
 </div>
 
 <div id="aboutOverlay" class="notif-overlay" onclick="toggleAbout(false)"></div>
@@ -367,10 +363,15 @@
   function toggleNotifications(open){
     document.getElementById('notifOverlay').classList.toggle('open', open);
     document.getElementById('notifPanel').classList.toggle('open', open);
+    if (open && window.GM_onBellOpen) window.GM_onBellOpen();
   }
   function toggleSettings(open){
     document.getElementById('settingsOverlay').classList.toggle('open', open);
     document.getElementById('settingsPanel').classList.toggle('open', open);
+  }
+  function toggleSound(open){
+    document.getElementById('soundOverlay').classList.toggle('open', open);
+    document.getElementById('soundPanel').classList.toggle('open', open);
   }
   function toggleAbout(open){
     document.getElementById('aboutOverlay').classList.toggle('open', open);
@@ -419,6 +420,70 @@
     if (saved) document.getElementById('currentLangLabel').textContent = saved.label;
   })();
 
+  // ---------------------------------------------------------------------
+  // Notification sound — real built-in tones via Web Audio (no external
+  // files, works fully offline). Picking a device ringtone from the OS's
+  // own sound library isn't something a web page can do — browsers don't
+  // expose that, so that one option just shows a "coming soon" note.
+  // ---------------------------------------------------------------------
+  var NOTIF_SOUND_KEY = 'gm_notif_sound';
+  var SOUNDS = {
+    chime:  { label: 'Chime',    notes: [660, 880] },
+    ding:   { label: 'Ding',     notes: [988] },
+    pop:    { label: 'Pop',      notes: [440] },
+    marimba:{ label: 'Marimba',  notes: [523, 659, 784] }
+  };
+  var audioCtx = null;
+  function getAudioCtx(){
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+  }
+  function playNotifSound(key){
+    var sound = SOUNDS[key] || SOUNDS.chime;
+    try {
+      var ctx = getAudioCtx();
+      var startAt = ctx.currentTime;
+      sound.notes.forEach(function(freq, i){
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        var t = startAt + i * 0.12;
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.25, t + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.3);
+      });
+    } catch (err){ console.warn('Could not play notification sound:', err); }
+  }
+  function getSavedSound(){ return localStorage.getItem(NOTIF_SOUND_KEY) || 'chime'; }
+  function renderSoundList(){
+    var listEl = document.getElementById('soundList');
+    var selected = getSavedSound();
+    listEl.innerHTML = '';
+    Object.keys(SOUNDS).forEach(function(key){
+      var row = document.createElement('div');
+      row.className = 'lang-item' + (key === selected ? ' selected' : '');
+      row.innerHTML = '<span>' + SOUNDS[key].label + '</span><span class="lang-check">✓</span>';
+      row.addEventListener('click', function(){
+        localStorage.setItem(NOTIF_SOUND_KEY, key);
+        document.getElementById('currentSoundLabel').textContent = SOUNDS[key].label;
+        playNotifSound(key);
+        renderSoundList();
+      });
+      listEl.appendChild(row);
+    });
+  }
+  document.getElementById('currentSoundLabel').textContent = SOUNDS[getSavedSound()].label;
+  renderSoundList();
+  document.getElementById('addDeviceSoundRow').addEventListener('click', function(){
+    alert('Adding your own device sound is coming soon! For now, pick one of the built-in tones above.');
+  });
+
+window.GM_playNotifSound = function(){ playNotifSound(getSavedSound()); };
+
   // toggleLogin() is now defined below in the Firebase module script,
   // wired to real Google sign-in shared with EnergyHub.
 
@@ -442,6 +507,7 @@ window.addEventListener('load', function(){
 // ---------------------------------------------------------------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithRedirect, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDbi-gQfQTYSI3naZX0679JXZBKiLGmygE",
@@ -454,6 +520,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
 function initialOf(name){
@@ -571,6 +638,104 @@ window.toggleLogin = async function(){
     console.error(err);
   }
 };
+
+// ---------------------------------------------------------------------------
+// Notifications — reads a shared "notifications" collection (same Firebase
+// project as EnergyHub). Unread count = notifications created after the
+// last time this device opened the panel (stored in localStorage, since
+// this is a single-device demo — no per-user read-receipts needed).
+// ---------------------------------------------------------------------------
+var NOTIF_SEEN_KEY = "gm_notif_last_seen";
+
+function getLastSeenTime(){
+  var raw = localStorage.getItem(NOTIF_SEEN_KEY);
+  return raw ? parseInt(raw, 10) : 0;
+}
+
+function notifIconFor(type){
+  if (type === "new_shop") return "🏪";
+  if (type === "discount") return "🏷️";
+  if (type === "update") return "🆕";
+  return "🔔";
+}
+
+async function fetchNotifications(){
+  var q = query(collection(db, "notifications"), orderBy("createdAt", "desc"), limit(30));
+  var snap = await getDocs(q);
+  var items = [];
+  var uid = auth.currentUser ? auth.currentUser.uid : null;
+  snap.forEach(function(docSnap){
+    var d = docSnap.data();
+    if (d.targetUids && (!uid || d.targetUids.indexOf(uid) === -1)) return; // targeted, not for this person
+    items.push({
+      id: docSnap.id,
+      type: d.type || "general",
+      title: d.title || "Notification",
+      message: d.message || "",
+      time: d.createdAt && d.createdAt.toMillis ? d.createdAt.toMillis() : 0
+    });
+  });
+  return items;
+}
+
+async function updateBellBadge(){
+  var badge = document.getElementById("bellBadge");
+  try {
+    var items = await fetchNotifications();
+    var lastSeen = getLastSeenTime();
+    var unread = items.filter(function(n){ return n.time > lastSeen; }).length;
+    if (unread > 0){
+      badge.textContent = unread > 9 ? "9+" : String(unread);
+      badge.classList.add("show");
+      if (window.GM_lastUnreadCount !== undefined && unread > window.GM_lastUnreadCount && window.GM_playNotifSound){
+        window.GM_playNotifSound();
+      }
+    } else {
+      badge.classList.remove("show");
+    }
+    window.GM_lastUnreadCount = unread;
+  } catch (err){
+    console.warn("Could not load notification count:", err);
+  }
+}
+
+async function renderNotificationList(){
+  var listEl = document.getElementById("notifItemsList");
+  try {
+    var items = await fetchNotifications();
+    if (items.length === 0){
+      listEl.innerHTML = '<div class="notif-empty">No notifications yet — updates about nearby shops and your followed shops will show up here.</div>';
+    } else {
+      listEl.innerHTML = "";
+      items.forEach(function(n){
+        var row = document.createElement("div");
+        row.className = "notif-item";
+        row.innerHTML =
+          '<div class="notif-icon">' + notifIconFor(n.type) + '</div>' +
+          '<div class="notif-text">' +
+            '<div class="notif-title"></div>' +
+            '<div class="notif-sub"></div>' +
+          '</div>';
+        row.querySelector(".notif-title").textContent = n.title;
+        row.querySelector(".notif-sub").textContent = n.message;
+        listEl.appendChild(row);
+      });
+    }
+    // Panel is open and items are now shown to the person — clear the badge.
+    localStorage.setItem(NOTIF_SEEN_KEY, String(Date.now()));
+    document.getElementById("bellBadge").classList.remove("show");
+  } catch (err){
+    listEl.innerHTML = '<div class="notif-empty">Could not load notifications right now.</div>';
+    console.error(err);
+  }
+}
+
+window.GM_onBellOpen = function(){
+  renderNotificationList();
+};
+
+updateBellBadge();
+setInterval(updateBellBadge, 30000);
 </script>
 </body>
 </html>
