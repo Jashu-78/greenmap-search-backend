@@ -506,7 +506,7 @@ window.addEventListener('load', function(){
 // shows the same account on both pages (shared session on this domain).
 // ---------------------------------------------------------------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithRedirect, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -625,19 +625,48 @@ loadLocationAndWeather();
 // Keep the greeting's time-of-day fresh if the app stays open a while
 setInterval(function(){ updateGreeting(auth.currentUser); }, 5 * 60 * 1000);
 
+// Try popup first (works fine on a real https page in mobile Chrome), and
+// only fall back to a full-page redirect if the popup gets blocked — some
+// browsers (especially in-app browsers like WhatsApp/Instagram) restrict
+// storage in ways that break the redirect flow's automatic pickup, so we
+// also explicitly check getRedirectResult() below rather than relying
+// only on onAuthStateChanged.
+async function GM_signIn(){
+  try {
+    var result = await signInWithPopup(auth, provider);
+    return result.user;
+  } catch (err){
+    console.warn("Popup sign-in failed, falling back to redirect:", err);
+    await signInWithRedirect(auth, provider);
+    return null; // page will navigate away; result picked up after redirect
+  }
+}
+
 window.toggleLogin = async function(){
   var loginBtn = document.getElementById("loginBtn");
   try {
     if (loginBtn.dataset.state === "in"){
       await signOut(auth);
     } else {
-      await signInWithRedirect(auth, provider);
+      await GM_signIn();
     }
   } catch (err){
     alert("Sign-in failed. Please try again.");
     console.error(err);
   }
 };
+
+// After Google redirects back here post-sign-in, pick up where we left off.
+(async function checkRedirectResult(){
+  try {
+    var result = await getRedirectResult(auth);
+    if (result && result.user){
+      updateProfileUI(result.user);
+    }
+  } catch (err){
+    console.error("Redirect sign-in error:", err);
+  }
+})();
 
 // ---------------------------------------------------------------------------
 // Notifications — reads a shared "notifications" collection (same Firebase
