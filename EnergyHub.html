@@ -185,6 +185,9 @@
   .reviews-head h4{font-size:13px;color:var(--primary);}
   .reviews-avg{font-size:12px;color:var(--textMuted);}
   .write-review-btn{background:var(--accent);color:#3a2a00;border:none;border-radius:8px;padding:6px 12px;font-size:11.5px;font-weight:700;cursor:pointer;}
+  .follow-btn{flex-shrink:0;align-self:flex-start;background:transparent;border:1.5px solid var(--primary2);color:var(--primary2);border-radius:999px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;transition:background .15s,color .15s;}
+  .follow-btn.following{background:var(--primary2);color:#fff;border-color:var(--primary2);}
+  .follow-btn:disabled{opacity:.6;cursor:default;}
   .review-card{padding:10px 18px;border-bottom:1px solid var(--line);}
   .review-card .rv-stars{color:#FFB703;font-size:13px;letter-spacing:1px;}
   .review-card .rv-name{font-size:11.5px;font-weight:700;color:var(--textDark);margin-top:2px;}
@@ -570,6 +573,7 @@
           <div class="p-type" id="profType"></div>
           <div class="avatar-edit-label" id="profAvatarEditLabel" style="display:none;"></div>
         </div>
+        <button type="button" id="profFollowBtn" class="follow-btn" style="display:none;">+ Follow</button>
       </div>
       <input id="profPhotoInput" type="file" accept="image/*" style="display:none;">
       <div class="p-meta">
@@ -581,6 +585,7 @@
     </div>
     <div class="products-head">
       <h4>Products</h4>
+      <button type="button" class="add-product-btn" id="profEditOfferBtn" style="display:none;">✏️ Edit Offer</button>
       <button type="button" class="add-product-btn" id="profAddProductBtn" style="display:none;">+ Add Product</button>
     </div>
     <div id="profProductList"></div>
@@ -593,6 +598,25 @@
       <button type="button" class="write-review-btn" id="profWriteReviewBtn">✍️ Write a Review</button>
     </div>
     <div id="profReviewsList"></div>
+  </div>
+</div>
+
+<!-- Edit Offer: lets a shop owner update their offer, which notifies followers -->
+<div id="editOfferSheet" class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <h3>Edit Offer</h3>
+    <button type="button" class="sheet-close" id="editOfferCloseBtn">✕</button>
+  </div>
+  <div class="sheet-body">
+    <form id="editOfferForm">
+      <div class="field">
+        <label for="editOfferInput">Offer / Discount <span class="hint">(shown on your shop, e.g. "10% off solar panels")</span></label>
+        <input id="editOfferInput" type="text" maxlength="120" placeholder="e.g. 10% off this week">
+      </div>
+      <div id="editOfferFormError" class="form-error">Please enter an offer.</div>
+      <button type="submit" class="save-btn" id="saveEditOfferBtn">Save Offer</button>
+    </form>
   </div>
 </div>
 
@@ -741,7 +765,7 @@
 // Firebase setup
 // ---------------------------------------------------------------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, updateDoc, serverTimestamp, doc, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, getDoc, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, doc, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
@@ -760,7 +784,7 @@ const auth = getAuth(app);
 const storage = getStorage(app);
 const provider = new GoogleAuthProvider();
 
-window.EHUB = { db, auth, provider, collection, getDocs, addDoc, updateDoc, serverTimestamp, signInWithRedirect, signInWithPopup, getRedirectResult, doc, query, orderBy, where, storage, storageRef: ref, uploadBytes, getDownloadURL };
+window.EHUB = { db, auth, provider, collection, getDocs, getDoc, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, signInWithRedirect, signInWithPopup, getRedirectResult, doc, query, orderBy, where, storage, storageRef: ref, uploadBytes, getDownloadURL };
 
 // Try popup first (works fine on a real https page in mobile Chrome), and
 // only fall back to a full-page redirect if the popup gets blocked.
@@ -1087,6 +1111,7 @@ var productSheet = document.getElementById("productSheet");
 var cartSheet = document.getElementById("cartSheet");
 var shopActionSheet = document.getElementById("shopActionSheet");
 var reviewSheet = document.getElementById("reviewSheet");
+var editOfferSheet = document.getElementById("editOfferSheet");
 var ordersSheet = document.getElementById("ordersSheet");
 var sellerOrdersSheet = document.getElementById("sellerOrdersSheet");
 var ordersRefreshTimer = null;
@@ -1794,6 +1819,48 @@ function resetShopPhotoPicker(){
   document.getElementById("photoPickLabel").style.display = "flex";
 }
 
+// ---------------------------------------------------------------------------
+// Notifications — writes to the shared "notifications" collection that
+// GreenMap_App.html's bell reads from. No cost per-user targeting field:
+// - no targetUids  -> shown to everyone (e.g. new shop nearby)
+// - targetUids: [] -> shown only to those uids (e.g. discount for followers)
+// ---------------------------------------------------------------------------
+async function addNotification(data){
+  try {
+    await window.EHUB.addDoc(window.EHUB.collection(window.EHUB.db, "notifications"), Object.assign({
+      createdAt: window.EHUB.serverTimestamp()
+    }, data));
+  } catch (err){
+    console.warn("Could not write notification:", err);
+  }
+}
+
+function notifyNewShopNearby(shop){
+  addNotification({
+    type: "new_shop",
+    title: "New shop added near you",
+    message: shop.name + " just joined GreenMap AI" + (shop.type ? " (" + shop.type + ")" : "")
+  });
+}
+
+// Ready for the future "edit shop / update offer" feature: call this after
+// a shop's offer is changed to alert everyone following that shop.
+async function notifyShopFollowers(shop, title, message){
+  try {
+    var q = window.EHUB.query(
+      window.EHUB.collection(window.EHUB.db, "follows"),
+      window.EHUB.where("shopId", "==", shop.id)
+    );
+    var snap = await window.EHUB.getDocs(q);
+    var uids = [];
+    snap.forEach(function(docSnap){ uids.push(docSnap.data().userId); });
+    if (uids.length === 0) return;
+    await addNotification({ type: "discount", title: title, message: message, targetUids: uids });
+  } catch (err){
+    console.warn("Could not notify followers:", err);
+  }
+}
+
 document.getElementById("shopForm").addEventListener("submit", async function(e){
   e.preventDefault();
 
@@ -1844,6 +1911,8 @@ document.getElementById("shopForm").addEventListener("submit", async function(e)
 
     var docRef = await window.EHUB.addDoc(window.EHUB.collection(window.EHUB.db, "shops"), newShop);
     newShop.id = docRef.id;
+
+    notifyNewShopNearby(newShop);
 
     addShopMarker(newShop);
     map.setView([newShop.lat, newShop.lng], 14);
@@ -1949,6 +2018,19 @@ async function openShopProfile(shop){
   var addBtn = document.getElementById("profAddProductBtn");
   addBtn.style.display = canManage ? "flex" : "none";
 
+  var editOfferBtn = document.getElementById("profEditOfferBtn");
+  editOfferBtn.style.display = canManage ? "flex" : "none";
+
+  var followBtn = document.getElementById("profFollowBtn");
+  if (shop.id && !canManage && currentUser){
+    followBtn.style.display = "inline-block";
+    followBtn.textContent = "…";
+    followBtn.disabled = true;
+    refreshFollowButton(shop);
+  } else {
+    followBtn.style.display = "none";
+  }
+
   var listEl = document.getElementById("profProductList");
   listEl.innerHTML = '<div class="no-products">Loading products…</div>';
   document.getElementById("profReviewsList").innerHTML = "";
@@ -1987,6 +2069,66 @@ async function openShopProfile(shop){
 
   loadReviews(shop.id);
 }
+
+// ---------------------------------------------------------------------------
+// Follow / unfollow a shop — lets a buyer get notified about that shop later
+// (new discounts, updates). Stored as one doc per (user, shop) pair so it's
+// cheap to check and cheap to list "shops I follow".
+// ---------------------------------------------------------------------------
+function followDocId(uid, shopId){ return uid + "_" + shopId; }
+
+async function refreshFollowButton(shop){
+  var followBtn = document.getElementById("profFollowBtn");
+  if (!currentUser || !shop.id) return;
+  try {
+    var ref = window.EHUB.doc(window.EHUB.db, "follows", followDocId(currentUser.uid, shop.id));
+    var snap = await window.EHUB.getDoc(ref);
+    setFollowButtonState(followBtn, snap.exists());
+  } catch (err){
+    console.error("Could not check follow status:", err);
+    setFollowButtonState(followBtn, false);
+  } finally {
+    followBtn.disabled = false;
+  }
+}
+
+function setFollowButtonState(btn, following){
+  btn.classList.toggle("following", following);
+  btn.textContent = following ? "✓ Following" : "+ Follow";
+  btn.dataset.following = following ? "1" : "0";
+}
+
+document.getElementById("profFollowBtn").addEventListener("click", async function(){
+  var shop = currentProfileShop;
+  if (!shop || !shop.id) return;
+  if (!currentUser){
+    alert("Please sign in to follow shops.");
+    return;
+  }
+  var btn = this;
+  btn.disabled = true;
+  var nowFollowing = btn.dataset.following === "1";
+  try {
+    var ref = window.EHUB.doc(window.EHUB.db, "follows", followDocId(currentUser.uid, shop.id));
+    if (nowFollowing){
+      await window.EHUB.deleteDoc(ref);
+      setFollowButtonState(btn, false);
+    } else {
+      await window.EHUB.setDoc(ref, {
+        userId: currentUser.uid,
+        shopId: shop.id,
+        shopName: shop.name || "",
+        createdAt: window.EHUB.serverTimestamp()
+      });
+      setFollowButtonState(btn, true);
+    }
+  } catch (err){
+    console.error("Follow toggle failed:", err);
+    alert("Could not update follow status right now.");
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 document.getElementById("profAvatarBadge").addEventListener("click", function(){
   document.getElementById("profPhotoInput").click();
@@ -2125,7 +2267,7 @@ function renderCartControl(el, shop, p){
   } else {
     el.innerHTML = '<button type="button" class="pc-add-cart">+ Add to Cart</button>';
     el.querySelector(".pc-add-cart").addEventListener("click", function(){
-      addToCart(shop.id, shop.name, p._id, p.name, Number(p.price || 0), p.unit || "", p.photoURL || "");
+      addToCart(shop.id, shop.name, p._id, p.name, Number(p.price || 0), p.unit || "", p.photoURL || "", shop.ownerUid || "");
       el.innerHTML = '<button type="button" class="pc-add-cart" disabled>Added ✓</button>';
       setTimeout(function(){ renderCartControl(el, shop, p); }, 700);
     });
@@ -2272,13 +2414,13 @@ function saveCart(cart){
   updateCartBadge();
 }
 
-function addToCart(shopId, shopName, productId, productName, price, unit, photoURL){
+function addToCart(shopId, shopName, productId, productName, price, unit, photoURL, shopOwnerUid){
   var cart = loadCart();
   var existing = cart.find(function(item){ return item.shopId === shopId && item.productId === productId; });
   if (existing){
     existing.qty += 1;
   } else {
-    cart.push({ shopId: shopId, shopName: shopName, productId: productId, name: productName, price: price, unit: unit, photoURL: photoURL || "", qty: 1, selected: true });
+    cart.push({ shopId: shopId, shopName: shopName, productId: productId, name: productName, price: price, unit: unit, photoURL: photoURL || "", shopOwnerUid: shopOwnerUid || "", qty: 1, selected: true });
   }
   saveCart(cart);
 }
@@ -2515,7 +2657,11 @@ document.getElementById("payDemoPaymentLink").addEventListener("click", function
 async function completeOrder(){
   try {
     var shopIdsSet = {};
-    pendingOrderItems.forEach(function(it){ shopIdsSet[it.shopId] = true; });
+    var shopOwnerUidsSet = {};
+    pendingOrderItems.forEach(function(it){
+      shopIdsSet[it.shopId] = true;
+      if (it.shopOwnerUid) shopOwnerUidsSet[it.shopOwnerUid] = true;
+    });
 
     var order = {
       buyerUid: currentUser.uid,
@@ -2528,6 +2674,7 @@ async function completeOrder(){
         };
       }),
       shopIds: Object.keys(shopIdsSet),
+      shopOwnerUids: Object.keys(shopOwnerUidsSet),
       total: pendingOrderTotal,
       status: "placed",
       createdAt: window.EHUB.serverTimestamp()
@@ -2564,6 +2711,65 @@ document.getElementById("profAddProductBtn").addEventListener("click", function(
   currentProductShopId = currentProfileShop.id;
   closeSheet(profileSheet);
   openSheet(productSheet);
+});
+
+// ---------------------------------------------------------------------------
+// Edit Offer — shop owner updates the offer, followers get notified
+// ---------------------------------------------------------------------------
+document.getElementById("profEditOfferBtn").addEventListener("click", function(){
+  document.getElementById("editOfferInput").value = currentProfileShop.offer || "";
+  document.getElementById("editOfferFormError").classList.remove("show");
+  closeSheet(profileSheet);
+  openSheet(editOfferSheet);
+});
+
+document.getElementById("editOfferCloseBtn").addEventListener("click", function(){
+  closeSheet(editOfferSheet);
+  if (currentProfileShop) openShopProfile(currentProfileShop);
+});
+
+document.getElementById("editOfferForm").addEventListener("submit", async function(e){
+  e.preventDefault();
+  var shop = currentProfileShop;
+  var newOffer = document.getElementById("editOfferInput").value.trim();
+  var errorBox = document.getElementById("editOfferFormError");
+  if (!newOffer){
+    errorBox.textContent = "Please enter an offer.";
+    errorBox.classList.add("show");
+    return;
+  }
+  errorBox.classList.remove("show");
+
+  var saveBtn = document.getElementById("saveEditOfferBtn");
+  var originalLabel = saveBtn.textContent;
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Saving…";
+
+  var oldOffer = shop.offer || "";
+
+  try {
+    await window.EHUB.updateDoc(window.EHUB.doc(window.EHUB.db, "shops", shop.id), { offer: newOffer });
+    shop.offer = newOffer;
+
+    if (newOffer !== oldOffer){
+      notifyShopFollowers(
+        shop,
+        "New offer from " + shop.name,
+        newOffer
+      );
+    }
+
+    saveBtn.disabled = false;
+    saveBtn.textContent = originalLabel;
+    closeSheet(editOfferSheet);
+    openShopProfile(shop);
+  } catch (err){
+    saveBtn.disabled = false;
+    saveBtn.textContent = originalLabel;
+    errorBox.textContent = "Could not save the offer. Please try again.";
+    errorBox.classList.add("show");
+    console.error(err);
+  }
 });
 
 // ---------------------------------------------------------------------------
