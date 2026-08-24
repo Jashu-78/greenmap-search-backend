@@ -2137,25 +2137,57 @@ document.getElementById("profAvatarEditLabel").addEventListener("click", functio
   document.getElementById("profPhotoInput").click();
 });
 
-// Wraps a Firebase upload/promise so it can never hang forever silently —
-// if Storage isn't set up yet in the Firebase console, this surfaces that
-// clearly instead of getting stuck on "Uploading…" with no feedback.
+// Wraps a Firestore promise so it can never hang forever silently.
 function withTimeout(promise, ms, label){
   return Promise.race([
     promise,
     new Promise(function(_, reject){
-      setTimeout(function(){ reject(new Error((label || "Request") + " timed out after " + Math.round(ms/1000) + "s. This usually means Firebase Storage hasn't been set up yet in the console — go to console.firebase.google.com \u2192 your project \u2192 Storage \u2192 Get started.")); }, ms);
+      setTimeout(function(){ reject(new Error((label || "Request") + " timed out after " + Math.round(ms/1000) + "s. Please check your connection and try again.")); }, ms);
     })
   ]);
 }
 
+// ---------------------------------------------------------------------------
+// Photo compression — shop/product photos are resized + compressed to a
+// JPEG data URL on-device, then stored directly as a string field on the
+// Firestore document. This avoids needing Firebase Storage (which needs
+// the paid Blaze plan) entirely. Quality steps down automatically until
+// the result comfortably fits Firestore's 1MB-per-document limit.
+// ---------------------------------------------------------------------------
+function compressImageToDataUrl(file, maxDim, quality){
+  return new Promise(function(resolve, reject){
+    var reader = new FileReader();
+    reader.onerror = function(){ reject(new Error("Could not read that photo. Please try another one.")); };
+    reader.onload = function(){
+      var img = new Image();
+      img.onerror = function(){ reject(new Error("Could not read that photo. Please try another one.")); };
+      img.onload = function(){
+        var scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        var canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        var q = quality;
+        var dataUrl = canvas.toDataURL("image/jpeg", q);
+        while (dataUrl.length > 700000 && q > 0.35){
+          q -= 0.1;
+          dataUrl = canvas.toDataURL("image/jpeg", q);
+        }
+        if (dataUrl.length > 900000){
+          reject(new Error("That photo is too large even after compressing. Please try a smaller or simpler photo."));
+          return;
+        }
+        resolve(dataUrl);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 async function uploadShopPhoto(file, shopId){
-  var uid = currentUser ? currentUser.uid : "anon";
-  var path = "shopPhotos/" + uid + "/" + Date.now() + "_" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  var fileRef = window.EHUB.storageRef(window.EHUB.storage, path);
-  await withTimeout(window.EHUB.uploadBytes(fileRef, file), 20000, "Photo upload");
-  var url = await withTimeout(window.EHUB.getDownloadURL(fileRef), 15000, "Fetching photo link");
-  return url;
+  return compressImageToDataUrl(file, 500, 0.7);
 }
 
 document.getElementById("profPhotoInput").addEventListener("change", async function(e){
@@ -2171,7 +2203,7 @@ document.getElementById("profPhotoInput").addEventListener("change", async funct
   var badge = document.getElementById("profAvatarBadge");
   var label = document.getElementById("profAvatarEditLabel");
   badge.disabled = true;
-  label.textContent = "Uploading…";
+  label.textContent = "Compressing…";
 
   try {
     var url = await uploadShopPhoto(file, currentProfileShop.id);
@@ -2856,12 +2888,8 @@ document.getElementById("productForm").addEventListener("submit", async function
 
   try {
     if (selectedProductPhotoFile){
-      saveBtn.textContent = "Uploading photo…";
-      var uid = currentUser ? currentUser.uid : "anon";
-      var path = "productPhotos/" + uid + "/" + Date.now() + "_" + selectedProductPhotoFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      var fileRef = window.EHUB.storageRef(window.EHUB.storage, path);
-      await withTimeout(window.EHUB.uploadBytes(fileRef, selectedProductPhotoFile), 20000, "Photo upload");
-      newProduct.photoURL = await withTimeout(window.EHUB.getDownloadURL(fileRef), 15000, "Fetching photo link");
+      saveBtn.textContent = "Compressing photo…";
+      newProduct.photoURL = await compressImageToDataUrl(selectedProductPhotoFile, 500, 0.7);
       saveBtn.textContent = "Saving…";
     }
 
