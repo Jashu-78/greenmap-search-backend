@@ -507,7 +507,7 @@ window.addEventListener('load', function(){
 // ---------------------------------------------------------------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDbi-gQfQTYSI3naZX0679JXZBKiLGmygE",
@@ -634,11 +634,29 @@ setInterval(function(){ updateGreeting(auth.currentUser); }, 5 * 60 * 1000);
 async function GM_signIn(){
   try {
     var result = await signInWithPopup(auth, provider);
+    notifyAdminOfLogin(result.user);
     return result.user;
   } catch (err){
     console.warn("Popup sign-in failed, falling back to redirect:", err);
     await signInWithRedirect(auth, provider);
     return null; // page will navigate away; result picked up after redirect
+  }
+}
+
+// Only you should hear about who's signing into the app.
+var ADMIN_EMAIL = "k.smjashu78@gmail.com";
+async function notifyAdminOfLogin(user){
+  if (!user || !user.email || user.email === ADMIN_EMAIL) return; // don't notify yourself about yourself
+  try {
+    await addDoc(collection(db, "notifications"), {
+      type: "login",
+      title: user.email + " has logged in to your app",
+      message: user.displayName ? "Signed in as " + user.displayName : "",
+      targetEmails: [ADMIN_EMAIL],
+      createdAt: serverTimestamp()
+    });
+  } catch (err){
+    console.warn("Could not notify admin of login:", err);
   }
 }
 
@@ -662,6 +680,7 @@ window.toggleLogin = async function(){
     var result = await getRedirectResult(auth);
     if (result && result.user){
       updateProfileUI(result.user);
+      notifyAdminOfLogin(result.user);
     }
   } catch (err){
     console.error("Redirect sign-in error:", err);
@@ -685,6 +704,8 @@ function notifIconFor(type){
   if (type === "new_shop") return "🏪";
   if (type === "discount") return "🏷️";
   if (type === "update") return "🆕";
+  if (type === "order") return "📦";
+  if (type === "login") return "👤";
   return "🔔";
 }
 
@@ -692,10 +713,16 @@ async function fetchNotifications(){
   var q = query(collection(db, "notifications"), orderBy("createdAt", "desc"), limit(30));
   var snap = await getDocs(q);
   var items = [];
-  var uid = auth.currentUser ? auth.currentUser.uid : null;
+  var user = auth.currentUser;
+  var uid = user ? user.uid : null;
+  var email = user ? user.email : null;
   snap.forEach(function(docSnap){
     var d = docSnap.data();
-    if (d.targetUids && (!uid || d.targetUids.indexOf(uid) === -1)) return; // targeted, not for this person
+    if (d.targetUids || d.targetEmails){
+      var matchesUid = d.targetUids && uid && d.targetUids.indexOf(uid) !== -1;
+      var matchesEmail = d.targetEmails && email && d.targetEmails.indexOf(email) !== -1;
+      if (!matchesUid && !matchesEmail) return; // targeted, not for this person
+    }
     items.push({
       id: docSnap.id,
       type: d.type || "general",
