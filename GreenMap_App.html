@@ -108,6 +108,8 @@
   #homeScreen .bell-dot{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 3px;border-radius:999px;background:#E8433B;color:#fff;font-size:9.5px;font-weight:800;line-height:16px;text-align:center;display:none;box-shadow:0 0 0 2px var(--primaryDeep);}
   #homeScreen .bell-dot.show{display:block;}
   #homeScreen .notif-empty{padding:32px 20px;text-align:center;color:var(--textMuted);font-size:13px;}
+  #homeScreen .notif-clear-row{border-top:1px solid var(--line);padding:10px 16px;text-align:center;}
+  #homeScreen .notif-clear-row button{background:none;border:none;color:var(--textMuted);font-size:12.5px;font-weight:700;cursor:pointer;padding:6px;}
 
   #homeScreen .white-section{background:#fff;padding:22px 20px 24px;}
   #homeScreen .white-inner{max-width:1240px;margin:0 auto;}
@@ -273,6 +275,9 @@
   </div>
   <div class="notif-items" id="notifItemsList">
     <div class="notif-empty">Loading notifications…</div>
+  </div>
+  <div class="notif-clear-row" id="notifClearRow" style="display:none;">
+    <button type="button" id="notifClearBtn">Clear all</button>
   </div>
 </div>
 
@@ -694,9 +699,14 @@ window.toggleLogin = async function(){
 // this is a single-device demo — no per-user read-receipts needed).
 // ---------------------------------------------------------------------------
 var NOTIF_SEEN_KEY = "gm_notif_last_seen";
+var NOTIF_CLEARED_KEY = "gm_notif_cleared_before";
 
 function getLastSeenTime(){
   var raw = localStorage.getItem(NOTIF_SEEN_KEY);
+  return raw ? parseInt(raw, 10) : 0;
+}
+function getClearedBeforeTime(){
+  var raw = localStorage.getItem(NOTIF_CLEARED_KEY);
   return raw ? parseInt(raw, 10) : 0;
 }
 
@@ -716,6 +726,7 @@ async function fetchNotifications(){
   var user = auth.currentUser;
   var uid = user ? user.uid : null;
   var email = user ? user.email : null;
+  var clearedBefore = getClearedBeforeTime();
   snap.forEach(function(docSnap){
     var d = docSnap.data();
     if (d.targetUids || d.targetEmails){
@@ -723,12 +734,14 @@ async function fetchNotifications(){
       var matchesEmail = d.targetEmails && email && d.targetEmails.indexOf(email) !== -1;
       if (!matchesUid && !matchesEmail) return; // targeted, not for this person
     }
+    var time = d.createdAt && d.createdAt.toMillis ? d.createdAt.toMillis() : 0;
+    if (time && time <= clearedBefore) return; // this device cleared everything up to here
     items.push({
       id: docSnap.id,
       type: d.type || "general",
       title: d.title || "Notification",
       message: d.message || "",
-      time: d.createdAt && d.createdAt.toMillis ? d.createdAt.toMillis() : 0
+      time: time
     });
   });
   return items;
@@ -757,10 +770,12 @@ async function updateBellBadge(){
 
 async function renderNotificationList(){
   var listEl = document.getElementById("notifItemsList");
+  var clearRow = document.getElementById("notifClearRow");
   try {
     var items = await fetchNotifications();
     if (items.length === 0){
       listEl.innerHTML = '<div class="notif-empty">No notifications yet — updates about nearby shops and your followed shops will show up here.</div>';
+      clearRow.style.display = "none";
     } else {
       listEl.innerHTML = "";
       items.forEach(function(n){
@@ -776,15 +791,22 @@ async function renderNotificationList(){
         row.querySelector(".notif-sub").textContent = n.message;
         listEl.appendChild(row);
       });
+      clearRow.style.display = "block";
     }
     // Panel is open and items are now shown to the person — clear the badge.
     localStorage.setItem(NOTIF_SEEN_KEY, String(Date.now()));
     document.getElementById("bellBadge").classList.remove("show");
   } catch (err){
     listEl.innerHTML = '<div class="notif-empty">Could not load notifications right now.</div>';
+    clearRow.style.display = "none";
     console.error(err);
   }
 }
+
+document.getElementById("notifClearBtn").addEventListener("click", function(){
+  localStorage.setItem(NOTIF_CLEARED_KEY, String(Date.now()));
+  renderNotificationList();
+});
 
 window.GM_onBellOpen = function(){
   renderNotificationList();
