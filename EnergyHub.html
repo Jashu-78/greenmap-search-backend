@@ -178,7 +178,10 @@
   .product-card .pc-price{font-size:12.5px;font-weight:800;color:var(--primary2);margin-top:1px;}
   .product-card .pc-desc{font-size:11px;color:var(--textMuted);margin-top:2px;}
   .oos-badge{display:inline-block;background:#B3261E;color:#fff;font-size:10px;font-weight:700;border-radius:6px;padding:2px 7px;margin-top:4px;}
-  .oos-toggle-btn{background:none;border:1px solid var(--line);border-radius:6px;font-size:10px;padding:3px 8px;margin-top:5px;cursor:pointer;color:var(--textMuted);}
+  .oos-toggle-btn{background:none;border:1px solid var(--line);border-radius:6px;font-size:10px;padding:3px 8px;cursor:pointer;color:var(--textMuted);}
+  .pc-remove-btn{background:none;border:1px solid #E3B0AE;border-radius:6px;font-size:10px;padding:3px 8px;cursor:pointer;color:#B3261E;}
+  .pc-thumb-editable{position:relative;}
+  .pc-photo-edit-badge{position:absolute;bottom:2px;right:2px;width:20px;height:20px;border-radius:50%;background:var(--primary2);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.3);}
   .no-products{padding:16px 18px;font-size:12px;color:var(--textMuted);text-align:center;}
 
   .reviews-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px;border-top:1px solid var(--line);margin-top:8px;}
@@ -2301,14 +2304,19 @@ function buildProductCard(p, shop){
   var isOwner = !!(shop && shop.id && currentUser && shop.ownerUid === currentUser.uid);
 
   card.innerHTML =
-    '<div class="pc-thumb">' + productImageHtml(p) + '</div>' +
+    '<div class="pc-thumb' + (isOwner && p._id ? ' pc-thumb-editable' : '') + '">' + productImageHtml(p) +
+      (isOwner && p._id ? '<label class="pc-photo-edit-badge">📷<input type="file" accept="image/*" class="pc-photo-input" data-pid="' + p._id + '" data-shopid="' + shop.id + '" style="display:none;"></label>' : '') +
+    '</div>' +
     '<div style="flex:1;">' +
       '<div class="pc-name">' + escapeHtml(p.name) + (p.category ? ' <span style="font-size:10px;font-weight:700;color:var(--primary2);">' + categoryLabel(p.category) + '</span>' : '') + '</div>' +
       '<div class="pc-price">' + priceText + '</div>' +
       (p.description ? '<div class="pc-desc">' + escapeHtml(p.description) + '</div>' : '') +
       (p.outOfStock ? '<div class="oos-badge">Out of Stock</div>' : '') +
       (shop && shop.id && p._id && !p.outOfStock ? '<div class="pc-cart-control"></div>' : '') +
-      (isOwner && p._id ? '<button type="button" class="oos-toggle-btn" data-pid="' + p._id + '" data-shopid="' + shop.id + '" data-current="' + (p.outOfStock ? "1" : "0") + '">' + (p.outOfStock ? "Mark In Stock" : "Mark Out of Stock") + '</button>' : '') +
+      (isOwner && p._id ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">' +
+        '<button type="button" class="oos-toggle-btn" data-pid="' + p._id + '" data-shopid="' + shop.id + '" data-current="' + (p.outOfStock ? "1" : "0") + '">' + (p.outOfStock ? "Mark In Stock" : "Mark Out of Stock") + '</button>' +
+        '<button type="button" class="pc-remove-btn" data-pid="' + p._id + '" data-shopid="' + shop.id + '" data-pname="' + escapeHtml(p.name) + '">🗑️ Remove</button>' +
+      '</div>' : '') +
     '</div>';
 
   if (shop && shop.id && p._id && !p.outOfStock){
@@ -2330,6 +2338,46 @@ function buildProductCard(p, shop){
         } catch (err){
           toggleBtn.disabled = false;
           alert("Could not update stock status. Please try again.");
+          console.error(err);
+        }
+      });
+    }
+
+    var removeBtn = card.querySelector(".pc-remove-btn");
+    if (removeBtn){
+      removeBtn.addEventListener("click", async function(){
+        if (!confirm('Remove "' + removeBtn.dataset.pname + '" from your shop? This can\'t be undone.')) return;
+        removeBtn.disabled = true;
+        removeBtn.textContent = "Removing…";
+        try {
+          await window.EHUB.deleteDoc(window.EHUB.doc(window.EHUB.db, "shops", removeBtn.dataset.shopid, "products", removeBtn.dataset.pid));
+          if (currentProfileShop) openShopProfile(currentProfileShop);
+        } catch (err){
+          removeBtn.disabled = false;
+          removeBtn.textContent = "🗑️ Remove";
+          alert("Could not remove the product. Please try again.");
+          console.error(err);
+        }
+      });
+    }
+
+    var photoInput = card.querySelector(".pc-photo-input");
+    if (photoInput){
+      photoInput.addEventListener("change", async function(){
+        var file = photoInput.files && photoInput.files[0];
+        if (!file) return;
+        var thumbEl = card.querySelector(".pc-thumb");
+        try {
+          thumbEl.style.opacity = "0.5";
+          var dataUrl = await compressImageToDataUrl(file, 500, 0.7);
+          await window.EHUB.updateDoc(
+            window.EHUB.doc(window.EHUB.db, "shops", photoInput.dataset.shopid, "products", photoInput.dataset.pid),
+            { photoURL: dataUrl }
+          );
+          if (currentProfileShop) openShopProfile(currentProfileShop);
+        } catch (err){
+          thumbEl.style.opacity = "1";
+          alert(err.message || "Could not update the product photo. Please try again.");
           console.error(err);
         }
       });
