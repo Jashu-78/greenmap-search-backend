@@ -507,7 +507,7 @@ window.addEventListener('load', function(){
 // ---------------------------------------------------------------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDbi-gQfQTYSI3naZX0679JXZBKiLGmygE",
@@ -790,7 +790,125 @@ window.GM_onBellOpen = function(){
   renderNotificationList();
 };
 
+// ---------------------------------------------------------------------------
+// Order stage notifications — the delivery tracker in EnergyHub is purely
+// time-computed (6 stages × 30s), not driven by real backend state changes.
+// This periodically checks the current person's orders and notifies them
+// the moment a stage is newly reached, using the stage's actual computed
+// time. Buyers get a simplified subset; shop owners get every stage with
+// a precise timestamp, and only they see those.
+// ---------------------------------------------------------------------------
+var TRACKER_STAGES = ["Product Ready", "Packed", "Shipped", "Reached Nearest Hub", "Out for Delivery", "Handed Over"];
+var STAGE_SECONDS = 30;
+var BUYER_STAGE_INDEXES = [0, 1, 2, 5]; // Product Ready, Packed, Shipped, Handed Over
+
+function computeStageIndex(createdAtMs){
+  var elapsedSec = (Date.now() - createdAtMs) / 1000;
+  var idx = Math.floor(elapsedSec / STAGE_SECONDS);
+  return Math.min(Math.max(idx, 0), TRACKER_STAGES.length - 1);
+}
+function stageSeenKey(orderId, role){ return "gm_stage_seen_" + role + "_" + orderId; }
+function getSeenStage(orderId, role){
+  var v = localStorage.getItem(stageSeenKey(orderId, role));
+  return v ? parseInt(v, 10) : -1;
+}
+function setSeenStage(orderId, role, idx){ localStorage.setItem(stageSeenKey(orderId, role), String(idx)); }
+function formatStageTime(ms){
+  return new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+async function checkOrderStageNotifications(){
+  var user = auth.currentUser;
+  if (!user) return;
+  var writes = [];
+
+  try {
+    // --- As buyer: simplified stage subset ---
+    var buyerSnap = await getDocs(query(collection(db, "orders"), where("buyerUid", "==", user.uid)));
+    buyerSnap.forEach(function(docSnap){
+      var order = docSnap.data();
+      if (!order.createdAt || !order.createdAt.toMillis) return;
+      var createdMs = order.createdAt.toMillis();
+      var curStage = computeStageIndex(createdMs);
+      var seen = getSeenStage(docSnap.id, "buyer");
+      var isFreshOrder = (Date.now() - createdMs) < 60000;
+
+      if (seen === -1 && !isFreshOrder){
+        // Pre-existing older order we've never tracked — don't backfill a
+        // wall of past-stage notifications, just start tracking from now.
+        setSeenStage(docSnap.id, "buyer", curStage);
+        return;
+      }
+
+      var itemNames = (order.items || []).map(function(it){ return it.name; }).join(", ");
+      for (var i = seen + 1; i <= curStage; i++){
+        if (BUYER_STAGE_INDEXES.indexOf(i) === -1) continue;
+        var label = TRACKER_STAGES[i] + (i === TRACKER_STAGES.length - 1 ? " — Delivered!" : "");
+        writes.push(addDoc(collection(db, "notifications"), {
+          type: "order",
+          title: label,
+          message: itemNames + " • " + formatStageTime(createdMs + i * STAGE_SECONDS * 1000),
+          targetUids: [user.uid],
+          createdAt: serverTimestamp()
+        }));
+      }
+      setSeenStage(docSnap.id, "buyer", curStage);
+
+      // One-time "please review" nudge once delivery completes.
+      if (curStage === TRACKER_STAGES.length - 1){
+        var reviewKey = "gm_review_nudge_" + docSnap.id;
+        if (!localStorage.getItem(reviewKey)){
+          localStorage.setItem(reviewKey, "1");
+          writes.push(addDoc(collection(db, "notifications"), {
+            type: "update",
+            title: "How was your order?",
+            message: "Leave a review for " + ((order.items && order.items[0] && order.items[0].name) || "your order"),
+            targetUids: [user.uid],
+            createdAt: serverTimestamp()
+          }));
+        }
+      }
+    });
+
+    // --- As shop owner: every stage, precise timestamp, owner-only ---
+    var sellerSnap = await getDocs(query(collection(db, "orders"), where("shopOwnerUids", "array-contains", user.uid)));
+    sellerSnap.forEach(function(docSnap){
+      var order = docSnap.data();
+      if (!order.createdAt || !order.createdAt.toMillis) return;
+      var createdMs = order.createdAt.toMillis();
+      var curStage = computeStageIndex(createdMs);
+      var seen = getSeenStage(docSnap.id, "seller");
+      var isFreshOrder = (Date.now() - createdMs) < 60000;
+
+      if (seen === -1 && !isFreshOrder){
+        setSeenStage(docSnap.id, "seller", curStage);
+        return;
+      }
+
+      var myItemNames = (order.items || [])
+        .filter(function(it){ return order.shopOwnerUids && order.shopOwnerUids.indexOf(user.uid) !== -1; })
+        .map(function(it){ return it.name; }).join(", ");
+      for (var j = seen + 1; j <= curStage; j++){
+        writes.push(addDoc(collection(db, "notifications"), {
+          type: "order",
+          title: TRACKER_STAGES[j] + " — " + (order.buyerName || "Buyer") + "'s order",
+          message: (myItemNames || "Order") + " at " + formatStageTime(createdMs + j * STAGE_SECONDS * 1000),
+          targetUids: [user.uid],
+          createdAt: serverTimestamp()
+        }));
+      }
+      setSeenStage(docSnap.id, "seller", curStage);
+    });
+
+    await Promise.all(writes);
+  } catch (err){
+    console.warn("Could not check order stage notifications:", err);
+  }
+}
+
 updateBellBadge();
+setInterval(checkOrderStageNotifications, 20000);
+checkOrderStageNotifications();
 setInterval(updateBellBadge, 30000);
 </script>
 </body>
