@@ -863,7 +863,9 @@ document.addEventListener("click", function(e){
       renderSidebar(); renderResults(); break;
     case "toggle-type":
       toggleInArray(state.types, value);
-      renderSidebar(); renderResults(); break;
+      renderSidebar(); renderResults();
+      if (window.EH_refilter) window.EH_refilter(state.types);
+      break;
     case "toggle-brand":
       toggleInArray(state.brands, value);
       renderSidebar(); renderResults(); break;
@@ -879,7 +881,9 @@ document.addEventListener("click", function(e){
     case "reset-filters":
       state.budgetIdx=null; state.types=[]; state.brands=[]; state.minEff=0; state.minWarranty=0; state.minScore=0; state.query="";
       document.getElementById("searchInput").value = "";
-      renderSidebar(); renderResults(); break;
+      renderSidebar(); renderResults();
+      if (window.EH_refilter) window.EH_refilter(state.types);
+      break;
     case "toggle-section":
       state.openSections[value] = !state.openSections[value];
       renderSidebar(); break;
@@ -963,6 +967,8 @@ document.addEventListener("keydown", function(e){
 // ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
+window.EH_getActiveTypes = function(){ return state.types; };
+
 renderStatic();
 renderAll();
 </script>
@@ -972,7 +978,9 @@ renderAll();
 // EnergyHub connection — shows real products listed by local EnergyHub
 // shops, pulled live from the same Firestore project. Fully self-contained
 // (own script block, own DOM target) so it can never interfere with, or be
-// broken by, the rest of this page's script.
+// broken by, the rest of this page's script. Bridges to the page's type
+// filter (Solar/Wind/Hybrid) and to EnergyHub's own cart (same localStorage
+// key, same origin) via small window-level hooks below.
 // ---------------------------------------------------------------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -990,8 +998,111 @@ var ehDb = getFirestore(ehApp);
 
 function ehEsc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
-async function loadEnergyHubProducts(){
+var CATEGORY_ICONS = {
+  solar: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj4KICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI0VGRjdEQiIvPgogIDxjaXJjbGUgY3g9IjkwIiBjeT0iMjgiIHI9IjE0IiBmaWxsPSIjRkZCNzAzIi8+CiAgPGcgc3Ryb2tlPSIjRkZCNzAzIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+CiAgICA8bGluZSB4MT0iOTAiIHkxPSI0IiB4Mj0iOTAiIHkyPSIxMCIvPgogICAgPGxpbmUgeDE9IjExMCIgeTE9IjI4IiB4Mj0iMTA0IiB5Mj0iMjgiLz4KICAgIDxsaW5lIHgxPSIxMDQiIHkxPSIxNCIgeDI9IjEwMCIgeTI9IjE4Ii8+CiAgPC9nPgogIDxyZWN0IHg9IjE0IiB5PSI0NiIgd2lkdGg9IjgwIiBoZWlnaHQ9IjU2IiByeD0iNCIgZmlsbD0iIzFGNUZCRiIvPgogIDxnIHN0cm9rZT0iI0VGRjdEQiIgc3Ryb2tlLXdpZHRoPSIyLjUiPgogICAgPGxpbmUgeDE9IjE0IiB5MT0iNjQiIHgyPSI5NCIgeTI9IjY0Ii8+CiAgICA8bGluZSB4MT0iMTQiIHkxPSI4MiIgeDI9Ijk0IiB5Mj0iODIiLz4KICAgIDxsaW5lIHgxPSIzNCIgeTE9IjQ2IiB4Mj0iMzQiIHkyPSIxMDIiLz4KICAgIDxsaW5lIHgxPSI1NCIgeTE9IjQ2IiB4Mj0iNTQiIHkyPSIxMDIiLz4KICAgIDxsaW5lIHgxPSI3NCIgeTE9IjQ2IiB4Mj0iNzQiIHkyPSIxMDIiLz4KICA8L2c+CiAgPHBvbHlnb24gcG9pbnRzPSIxMCwxMDIgOTgsMTAyIDEwOCwxMTIgMCwxMTIiIGZpbGw9IiMzNTQwMTYiLz4KICA8cmVjdCB4PSI0NiIgeT0iMTA2IiB3aWR0aD0iOCIgaGVpZ2h0PSIxMCIgZmlsbD0iIzZhODAyZCIvPgo8L3N2Zz4K",
+  wind: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj4KICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI0VGRjdEQiIvPgogIDxyZWN0IHg9IjU2IiB5PSI1MiIgd2lkdGg9IjgiIGhlaWdodD0iNTgiIGZpbGw9IiM2YTgwMmQiLz4KICA8cG9seWdvbiBwb2ludHM9IjUyLDExMCA2OCwxMTAgNzQsMTE2IDQ2LDExNiIgZmlsbD0iIzM1NDAxNiIvPgogIDxjaXJjbGUgY3g9IjYwIiBjeT0iNTAiIHI9IjYiIGZpbGw9IiMzNTQwMTYiLz4KICA8ZyBmaWxsPSIjMUY1RkJGIj4KICAgIDxwYXRoIGQ9Ik02MCw1MCBDNjAsNTAgNTgsMTggNDQsMTQgQzQ0LDE0IDQ4LDQyIDYwLDUwIFoiLz4KICAgIDxwYXRoIGQ9Ik02MCw1MCBDNjAsNTAgODYsMzYgODYsMjAgQzg2LDIwIDYyLDI2IDYwLDUwIFoiLz4KICAgIDxwYXRoIGQ9Ik02MCw1MCBDNjAsNTAgNzgsNzIgNjIsODggQzYyLDg4IDU0LDY0IDYwLDUwIFoiLz4KICA8L2c+Cjwvc3ZnPgo=",
+  hybrid: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj4KICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI0VGRjdEQiIvPgogIDxjaXJjbGUgY3g9IjM4IiBjeT0iMzIiIHI9IjEyIiBmaWxsPSIjRkZCNzAzIi8+CiAgPGcgc3Ryb2tlPSIjRkZCNzAzIiBzdHJva2Utd2lkdGg9IjMuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgIDxsaW5lIHgxPSIzOCIgeTE9IjEyIiB4Mj0iMzgiIHkyPSIxNyIvPgogICAgPGxpbmUgeDE9IjUzIiB5MT0iMzIiIHgyPSI0OCIgeTI9IjMyIi8+CiAgICA8bGluZSB4MT0iNDkiIHkxPSIyMSIgeDI9IjQ2IiB5Mj0iMjQiLz4KICA8L2c+CiAgPGcgZmlsbD0iIzFGNUZCRiI+CiAgICA8cGF0aCBkPSJNOTIsMzQgQzkyLDM0IDkwLDEwIDc4LDcgQzc4LDcgODEsMjggOTIsMzQgWiIvPgogICAgPHBhdGggZD0iTTkyLDM0IEM5MiwzNCAxMTEsMjQgMTExLDEyIEMxMTEsMTIgOTMsMTYgOTIsMzQgWiIvPgogIDwvZz4KICA8cmVjdCB4PSI4OCIgeT0iMzQiIHdpZHRoPSI1IiBoZWlnaHQ9IjIwIiBmaWxsPSIjNmE4MDJkIi8+CiAgPHBvbHlnb24gcG9pbnRzPSI2Niw0NCA0Niw3OCA2MCw3OCA1MiwxMTIgOTAsNjYgNzQsNjYgODQsNDQiIGZpbGw9IiMzNTQwMTYiLz4KICA8cG9seWdvbiBwb2ludHM9IjY2LDQ0IDQ2LDc4IDYwLDc4IDUyLDExMiA5MCw2NiA3NCw2NiA4NCw0NCIgZmlsbD0iI0ZGQjcwMyIgb3BhY2l0eT0iMC4xNSIvPgo8L3N2Zz4K"
+};
+var CATEGORY_LABELS = { solar: "☀️ Solar", wind: "💨 Wind", hybrid: "⚡ Hybrid" };
+// Maps this page's existing type-toggle labels to EnergyHub's category values.
+var TYPE_TO_CATEGORY = { "Solar Panel": "solar", "Wind Turbine": "wind", "Hybrid Kit": "hybrid" };
+
+var ehAllProducts = []; // cached after first load, so filtering is instant
+
+function ehProductImg(p){
+  return p.photoURL || CATEGORY_ICONS[p.category] || CATEGORY_ICONS.hybrid;
+}
+
+// Adds an item to EnergyHub's own cart — same localStorage key, same
+// origin, so anything added here shows up directly in EnergyHub's cart.
+var EH_CART_KEY = "ehub_cart_v1";
+function ehAddToCart(p){
+  var cart = [];
+  try { cart = JSON.parse(localStorage.getItem(EH_CART_KEY) || "[]"); } catch(e){ cart = []; }
+  var existing = cart.find(function(item){ return item.shopId === p.shopId && item.productId === p.productId; });
+  if (existing){
+    existing.qty += 1;
+  } else {
+    cart.push({
+      shopId: p.shopId, shopName: p.shopName, productId: p.productId, name: p.name,
+      price: p.price, unit: p.unit || "", photoURL: p.photoURL || "", category: p.category || "",
+      shopOwnerUid: p.shopOwnerUid || "", qty: 1, selected: true
+    });
+  }
+  localStorage.setItem(EH_CART_KEY, JSON.stringify(cart));
+}
+
+function ehCardHtml(p, idx){
+  var priceText = "₹" + Number(p.price || 0).toLocaleString("en-IN") + (p.unit ? " " + ehEsc(p.unit) : "");
+  return '' +
+    '<div class="eh-product-card" ' +
+      'style="display:flex;flex-direction:column;width:158px;flex-shrink:0;' +
+      'background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E3EEE6;box-shadow:0 1px 3px rgba(0,0,0,0.06);">' +
+      '<a href="EnergyHub.html?shop=' + encodeURIComponent(p.shopId) + '" style="text-decoration:none;color:inherit;">' +
+        '<div style="width:100%;height:96px;background:#EFF7DB;">' +
+          '<img src="' + ehProductImg(p) + '" alt="" style="width:100%;height:100%;object-fit:cover;">' +
+        '</div>' +
+      '</a>' +
+      '<div style="padding:8px 10px 10px;">' +
+        (p.category ? '<div style="font-size:10px;font-weight:700;color:#1B4332;">' + CATEGORY_LABELS[p.category] + '</div>' : '') +
+        '<a href="EnergyHub.html?shop=' + encodeURIComponent(p.shopId) + '" style="text-decoration:none;color:inherit;">' +
+          '<div style="font-size:12.5px;font-weight:700;color:#1B2B22;line-height:1.3;margin-top:2px;' +
+            'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + ehEsc(p.name) + '</div>' +
+        '</a>' +
+        '<div style="font-size:11px;color:#5C6F63;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + ehEsc(p.shopName) + '</div>' +
+        '<div style="font-size:13px;font-weight:800;color:#1B4332;margin-top:4px;">' + priceText + '</div>' +
+        '<button type="button" data-eh-add="' + idx + '" ' +
+          'style="margin-top:6px;width:100%;background:#1B4332;color:#fff;border:none;border-radius:8px;padding:6px 0;font-size:11.5px;font-weight:700;cursor:pointer;">' +
+          '+ Add to Cart' +
+        '</button>' +
+      '</div>' +
+    '</div>';
+}
+
+function ehRender(activeTypes){
   var sectionEl = document.getElementById("energyHubSection");
+  if (!sectionEl) return;
+
+  var activeCategories = (activeTypes || []).map(function(t){ return TYPE_TO_CATEGORY[t]; }).filter(Boolean);
+  var visible = activeCategories.length
+    ? ehAllProducts.filter(function(p){ return activeCategories.indexOf(p.category) !== -1; })
+    : ehAllProducts;
+
+  if (ehAllProducts.length === 0){
+    sectionEl.innerHTML = "";
+    return;
+  }
+  if (visible.length === 0){
+    sectionEl.innerHTML = '' +
+      '<div style="margin:0 0 8px;">' +
+        '<div style="font-size:15px;font-weight:800;color:#1B2B22;">🏪 From EnergyHub Local Shops</div>' +
+        '<div style="font-size:12px;color:#5C6F63;margin-top:4px;">No shops have that category listed yet.</div>' +
+      '</div>';
+    return;
+  }
+
+  var cardsHtml = visible.slice(0, 24).map(function(p, i){ return ehCardHtml(p, i); }).join("");
+  sectionEl.innerHTML = '' +
+    '<div style="margin:0 0 8px;">' +
+      '<div style="font-size:15px;font-weight:800;color:#1B2B22;display:flex;align-items:center;gap:6px;">🏪 From EnergyHub Local Shops</div>' +
+      '<div style="font-size:12px;color:#5C6F63;margin-top:2px;">Live products from shops near you — tap to view, or add straight to your cart</div>' +
+    '</div>' +
+    '<div style="display:flex;gap:10px;overflow-x:auto;padding:2px 2px 12px;-webkit-overflow-scrolling:touch;">' + cardsHtml + '</div>';
+
+  // Wire the Add to Cart buttons for the currently visible slice.
+  sectionEl.querySelectorAll("[data-eh-add]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var p = visible[Number(btn.getAttribute("data-eh-add"))];
+      ehAddToCart(p);
+      var original = btn.textContent;
+      btn.textContent = "✓ Added";
+      btn.style.background = "#3F7D4C";
+      setTimeout(function(){ btn.textContent = original; btn.style.background = "#1B4332"; }, 1200);
+    });
+  });
+}
+
+async function loadEnergyHubProducts(){
   try {
     var shopsSnap = await getDocs(collection(ehDb, "shops"));
     var shopDocs = [];
@@ -1002,12 +1113,13 @@ async function loadEnergyHubProducts(){
       var shop = shopDocs[i];
       try {
         var prodSnap = await getDocs(collection(ehDb, "shops", shop.id, "products"));
-        prodSnap.forEach(function(p){
-          var prod = p.data();
+        prodSnap.forEach(function(pDoc){
+          var prod = pDoc.data();
           if (prod.outOfStock) return;
           allProducts.push({
-            name: prod.name, price: prod.price, unit: prod.unit || "",
-            photoURL: prod.photoURL || "", shopId: shop.id, shopName: shop.data.name
+            productId: pDoc.id, name: prod.name, price: prod.price, unit: prod.unit || "",
+            category: prod.category || "", photoURL: prod.photoURL || "",
+            shopId: shop.id, shopName: shop.data.name, shopOwnerUid: shop.data.ownerUid || ""
           });
         });
       } catch (innerErr){
@@ -1015,41 +1127,17 @@ async function loadEnergyHubProducts(){
       }
     }
 
-    if (allProducts.length === 0){
-      sectionEl.innerHTML = "";
-      return;
-    }
-
-    var cardsHtml = allProducts.slice(0, 24).map(function(p){
-      var priceText = "₹" + Number(p.price || 0).toLocaleString("en-IN") + (p.unit ? " " + ehEsc(p.unit) : "");
-      var thumb = p.photoURL
-        ? '<img src="' + p.photoURL + '" alt="" style="width:100%;height:100%;object-fit:cover;">'
-        : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;">🛒</div>';
-      return '' +
-        '<a class="eh-product-card" href="EnergyHub.html?shop=' + encodeURIComponent(p.shopId) + '" ' +
-          'style="text-decoration:none;color:inherit;display:flex;flex-direction:column;width:150px;flex-shrink:0;' +
-          'background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E3EEE6;box-shadow:0 1px 3px rgba(0,0,0,0.06);">' +
-          '<div style="width:100%;height:100px;background:#F2F7F3;">' + thumb + '</div>' +
-          '<div style="padding:8px 10px 10px;">' +
-            '<div style="font-size:12.5px;font-weight:700;color:#1B2B22;line-height:1.3;' +
-              'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + ehEsc(p.name) + '</div>' +
-            '<div style="font-size:11px;color:#5C6F63;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + ehEsc(p.shopName) + '</div>' +
-            '<div style="font-size:13px;font-weight:800;color:#1B4332;margin-top:4px;">' + priceText + '</div>' +
-          '</div>' +
-        '</a>';
-    }).join("");
-
-    sectionEl.innerHTML = '' +
-      '<div style="margin:0 0 8px;">' +
-        '<div style="font-size:15px;font-weight:800;color:#1B2B22;display:flex;align-items:center;gap:6px;">🏪 From EnergyHub Local Shops</div>' +
-        '<div style="font-size:12px;color:#5C6F63;margin-top:2px;">Live products from shops near you — tap to view in EnergyHub</div>' +
-      '</div>' +
-      '<div style="display:flex;gap:10px;overflow-x:auto;padding:2px 2px 12px;-webkit-overflow-scrolling:touch;">' + cardsHtml + '</div>';
+    ehAllProducts = allProducts;
+    ehRender(window.EH_getActiveTypes ? window.EH_getActiveTypes() : []);
   } catch (err){
     console.warn("Could not load EnergyHub products:", err);
-    sectionEl.innerHTML = "";
   }
 }
+
+// Bridge for the page's existing Solar/Wind/Hybrid toggles (defined in the
+// other script block) to re-filter this section without needing to touch
+// or depend on that script's internals.
+window.EH_refilter = function(activeTypes){ ehRender(activeTypes); };
 
 loadEnergyHubProducts();
 </script>
