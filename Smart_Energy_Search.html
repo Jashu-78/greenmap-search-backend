@@ -111,6 +111,14 @@
   .card-icon-wrap{width:96px;flex-shrink:0;}
   .card-icon-box{position:relative;width:96px;height:96px;border-radius:12px;background:var(--card);display:flex;align-items:center;justify-content:center;}
   .score-badge{position:absolute;top:-8px;left:-8px;color:#fff;font-size:11.5px;font-weight:800;border-radius:999px;padding:4px 8px;box-shadow:0 2px 6px rgba(0,0,0,.15);}
+  .shop-badge{position:absolute;top:-6px;right:2px;background:#1B4332;color:#fff;font-size:9.5px;font-weight:700;border-radius:999px;padding:3px 8px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.15);}
+  .btn-add-cart{margin-top:8px;width:100%;background:#1B4332;color:#fff;border:none;border-radius:8px;padding:9px 0;font-size:12.5px;font-weight:700;cursor:pointer;}
+  .card-cart-row{margin-top:8px;display:flex;align-items:center;justify-content:center;gap:12px;background:#EFF7DB;border-radius:8px;padding:6px 0;}
+  .cart-step-btn{width:26px;height:26px;border-radius:50%;border:1px solid #1B4332;background:#fff;color:#1B4332;font-size:15px;font-weight:800;cursor:pointer;line-height:1;}
+  .cart-step-qty{font-size:12px;font-weight:700;color:#1B4332;}
+  .cart-toast{position:fixed;top:14px;left:50%;transform:translateX(-50%) translateY(-140%);z-index:500;background:#2E7D46;color:#fff;border-radius:999px;padding:10px 16px;display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.25);transition:transform .25s ease;white-space:nowrap;}
+  .cart-toast.show{transform:translateX(-50%) translateY(0);}
+  .cart-toast a{color:#fff;text-decoration:underline;margin-left:4px;}
   .card-main{flex:1;min-width:220px;}
   .card-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;}
   .card-type{font-size:10.5px;font-weight:700;color:var(--textMuted);letter-spacing:.5px;}
@@ -194,6 +202,11 @@
 </style>
 </head>
 <body>
+<div class="cart-toast" id="cartToast">
+  <span class="cart-toast-check">✅</span>
+  <span id="cartToastText">Added to cart</span>
+  <a href="EnergyHub.html">View Cart</a>
+</div>
 
 <div class="header">
   <div class="header-inner">
@@ -254,7 +267,6 @@
         </select>
       </div>
     </div>
-    <div id="energyHubSection"></div>
     <div class="web-search-row">
       <a id="webSearchBtn" class="web-search-link" href="#" target="_blank" rel="noopener">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -316,6 +328,8 @@ function icon(name, size, color, strokeWidth){
     case "repeat": return '<svg '+a+'><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>';
     case "trendingUp": return '<svg '+a+'><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>';
     case "battery": return '<svg '+a+'><rect x="1" y="7" width="18" height="10" rx="2"/><line x1="23" y1="10" x2="23" y2="14"/><path d="M7 9.5 5 12h3l-2 2.5"/></svg>';
+    case "leaf": return '<svg '+a+'><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>';
+    case "store": return '<svg '+a+'><path d="M3 9l1-5h16l1 5"/><path d="M3 9a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0"/><path d="M4 9v9a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/></svg>';
     default: return "";
   }
 }
@@ -507,42 +521,65 @@ function renderSidebar(){
   document.getElementById("sidebar").innerHTML = html;
 }
 
+function productVisualHtml(p, size){
+  if (p.photoURL) return '<img src="'+p.photoURL+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">';
+  return icon(p.icon, size, C.primary2);
+}
+
 function cardHtml(p){
   var inCompare = state.compare.indexOf(p.id) !== -1;
   var compareFull = state.compare.length >= 3 && !inCompare;
+  var hasSpecs = (p.capacityLabel && p.capacityLabel !== "—") || p.efficiency || p.warranty;
+  var hasRating = p.userCount > 0;
+  var hasProsCons = (p.pros && p.pros.length) || (p.cons && p.cons.length);
   return '<div class="card">' +
     '<div class="card-icon-wrap"><div class="card-icon-box">' +
-      icon(p.icon, 40, C.primary2) +
-      '<div class="score-badge" style="background:'+scoreColor(p.score)+';">'+p.score+'%</div>' +
-    '</div></div>' +
+      productVisualHtml(p, 40) +
+      (p.score != null ? '<div class="score-badge" style="background:'+scoreColor(p.score)+';">'+p.score+'%</div>' : '') +
+    '</div>' +
+    (p.isShopProduct ? '<div class="shop-badge">🏪 Available in Shop</div>' : '') +
+    '</div>' +
     '<div class="card-main">' +
       '<div class="card-head">' +
         '<div><div class="card-type">'+esc(p.type.toUpperCase())+' · '+esc(p.brand)+'</div>' +
         '<button class="card-name serif" data-action="view-detail" data-value="'+p.id+'">'+esc(p.name)+'</button></div>' +
         '<div class="card-price">'+money(p.price)+'</div>' +
       '</div>' +
-      '<div class="card-stats">' +
-        '<div class="stat">'+icon("zap",14,C.primary2)+' <span class="lbl">Capacity:</span> <b>'+esc(p.capacityLabel)+'</b></div>' +
-        '<div class="stat">'+icon("trendingUp",14,C.primary2)+' <span class="lbl">Efficiency:</span> <b>'+p.efficiency+'%</b></div>' +
-        '<div class="stat">'+icon("shield",14,C.primary2)+' <span class="lbl">Warranty:</span> <b>'+p.warranty+' yrs</b></div>' +
-      '</div>' +
-      '<div class="best-for"><b>Best for:</b> '+esc(p.bestFor)+'</div>' +
-      '<div class="rating-row">' +
+      (hasSpecs ? '<div class="card-stats">' +
+        (p.capacityLabel && p.capacityLabel !== "—" ? '<div class="stat">'+icon("zap",14,C.primary2)+' <span class="lbl">Capacity:</span> <b>'+esc(p.capacityLabel)+'</b></div>' : '') +
+        (p.efficiency ? '<div class="stat">'+icon("trendingUp",14,C.primary2)+' <span class="lbl">Efficiency:</span> <b>'+p.efficiency+'%</b></div>' : '') +
+        (p.warranty ? '<div class="stat">'+icon("shield",14,C.primary2)+' <span class="lbl">Warranty:</span> <b>'+p.warranty+' yrs</b></div>' : '') +
+      '</div>' : '') +
+      (p.bestFor ? '<div class="best-for"><b>Best for:</b> '+esc(p.bestFor)+'</div>' : '') +
+      (hasRating ? '<div class="rating-row">' +
         '<div class="rating-item">'+starsHtml(p.userRating)+' '+p.userRating+'/5 ('+p.userCount+')</div>' +
-        '<div class="rating-item">'+icon("award",14,C.accentDeep)+' Expert '+p.expertRating+'/10</div>' +
-      '</div>' +
-      '<div class="proscons">' +
-        '<div><b class="pros">Pros:</b> <span>'+esc(p.pros[0])+'</span></div>' +
-        '<div><b class="cons">Cons:</b> <span>'+esc(p.cons[0])+'</span></div>' +
-      '</div>' +
+        (p.expertRating ? '<div class="rating-item">'+icon("award",14,C.accentDeep)+' Expert '+p.expertRating+'/10</div>' : '') +
+      '</div>' : '') +
+      (hasProsCons ? '<div class="proscons">' +
+        (p.pros && p.pros[0] ? '<div><b class="pros">Pros:</b> <span>'+esc(p.pros[0])+'</span></div>' : '') +
+        (p.cons && p.cons[0] ? '<div><b class="cons">Cons:</b> <span>'+esc(p.cons[0])+'</span></div>' : '') +
+      '</div>' : '') +
       '<div class="card-actions">' +
         '<button class="btn-primary" data-action="view-detail" data-value="'+p.id+'">View Full Specs</button>' +
         '<button class="btn-compare'+(inCompare?' active':'')+(compareFull?' disabled':'')+'" data-action="'+(compareFull?'':'toggle-compare')+'" data-value="'+p.id+'">' +
           icon("repeat",13,inCompare?C.primary:C.primary2)+' '+(inCompare ? "Added to Compare" : "+ Compare") +
         '</button>' +
       '</div>' +
+      (p.isShopProduct ? cartControlHtml(p) : '') +
     '</div>' +
   '</div>';
+}
+
+function cartControlHtml(p){
+  var qty = getCartQty(p.shopId, p.productId);
+  if (qty > 0){
+    return '<div class="card-cart-row">' +
+      '<button class="cart-step-btn" data-action="cart-dec" data-value="'+p.id+'">−</button>' +
+      '<span class="cart-step-qty">'+qty+' in cart</span>' +
+      '<button class="cart-step-btn" data-action="cart-inc" data-value="'+p.id+'">+</button>' +
+    '</div>';
+  }
+  return '<button class="btn-add-cart" data-action="add-to-cart" data-value="'+p.id+'">+ Add to Cart</button>';
 }
 
 function renderResults(){
@@ -627,7 +664,6 @@ function updateWebSearchLink(){
   var serpBtn = document.getElementById("serpSearchBtn");
   var textEl = document.getElementById("webSearchQueryText");
   var q = state.query.trim();
-  if (!q && state.types.length === 1) q = state.types[0];
   if (!q){
     btn.classList.remove("show");
     liveBtn.classList.remove("show");
@@ -759,6 +795,51 @@ function findProduct(id){
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// Cart — same localStorage key/shape EnergyHub itself uses, so anything
+// added here shows up directly in EnergyHub's own cart (same origin).
+// ---------------------------------------------------------------------------
+var EH_CART_KEY = "ehub_cart_v1";
+function readCart(){
+  try { return JSON.parse(localStorage.getItem(EH_CART_KEY) || "[]"); } catch(e){ return []; }
+}
+function writeCart(cart){ localStorage.setItem(EH_CART_KEY, JSON.stringify(cart)); }
+function getCartQty(shopId, productId){
+  var cart = readCart();
+  var item = cart.find(function(it){ return it.shopId === shopId && it.productId === productId; });
+  return item ? item.qty : 0;
+}
+function addShopProductToCart(p){
+  var cart = readCart();
+  var existing = cart.find(function(it){ return it.shopId === p.shopId && it.productId === p.productId; });
+  if (existing){
+    existing.qty += 1;
+  } else {
+    cart.push({
+      shopId: p.shopId, shopName: p.brand, productId: p.productId, name: p.name,
+      price: p.price, unit: p.unitRaw || "", photoURL: p.photoURL || "", category: p.category || "",
+      shopOwnerUid: p.shopOwnerUid || "", qty: 1, selected: true
+    });
+  }
+  writeCart(cart);
+}
+function changeCartQty(p, delta){
+  var cart = readCart();
+  var idx = cart.findIndex(function(it){ return it.shopId === p.shopId && it.productId === p.productId; });
+  if (idx === -1) return;
+  cart[idx].qty += delta;
+  if (cart[idx].qty <= 0) cart.splice(idx, 1);
+  writeCart(cart);
+}
+var cartToastTimer = null;
+function showCartToast(p){
+  var toast = document.getElementById("cartToast");
+  document.getElementById("cartToastText").textContent = esc(p.name) + " added to cart";
+  toast.classList.add("show");
+  if (cartToastTimer) clearTimeout(cartToastTimer);
+  cartToastTimer = setTimeout(function(){ toast.classList.remove("show"); }, 3000);
+}
+
 function renderOverlay(){
   var root = document.getElementById("overlayRoot");
   var html = "";
@@ -766,6 +847,10 @@ function renderOverlay(){
   if (state.detailId){
     var p = findProduct(state.detailId);
     if (p){
+      var hasSpecsList = p.specs && p.specs.length;
+      var hasWhy = !!p.why;
+      var hasProsConsList = (p.pros && p.pros.length) || (p.cons && p.cons.length);
+      var hasRatingBox = p.userCount > 0;
       html += '<div class="overlay" id="detailOverlay">' +
         '<div class="overlay-bg" data-action="close-detail"></div>' +
         '<div class="detail-panel">' +
@@ -776,28 +861,30 @@ function renderOverlay(){
           '</div>' +
           '<div class="detail-body">' +
             '<div class="detail-top">' +
-              '<div class="detail-icon">'+icon(p.icon,30,C.primary2)+'</div>' +
+              '<div class="detail-icon">'+productVisualHtml(p,30)+'</div>' +
               '<div><div class="detail-price">'+money(p.price)+'</div>' +
-              '<span class="pill" style="background:'+scoreColor(p.score)+';">'+p.score+'% Suitability</span></div>' +
+              (p.score != null ? '<span class="pill" style="background:'+scoreColor(p.score)+';">'+p.score+'% Suitability</span>' : '') + '</div>' +
             '</div>' +
-            '<div class="box"><div class="box-title">'+icon("battery",15,C.primary2)+' Key Specs</div>' +
+            (p.isShopProduct ? '<div class="box" style="background:#EFF7DB;"><a href="EnergyHub.html?shop='+encodeURIComponent(p.shopId)+'" style="color:#1B4332;font-weight:700;text-decoration:none;">🏪 Available in Shop — View '+esc(p.brand)+' in EnergyHub →</a></div>' : '') +
+            (hasSpecsList ? '<div class="box"><div class="box-title">'+icon("battery",15,C.primary2)+' Key Specs</div>' +
               p.specs.map(function(row){
                 return '<div class="spec-row"><span class="k">'+esc(row[0])+'</span><span class="v">'+esc(row[1])+'</span></div>';
               }).join("") +
-            '</div>' +
-            '<div class="why-box"><div class="why-title">Why the AI recommends it</div><div class="why-text">'+esc(p.why)+'</div></div>' +
-            '<div class="pc-grid">' +
+            '</div>' : '') +
+            (hasWhy ? '<div class="why-box"><div class="why-title">Why it\'s recommended</div><div class="why-text">'+esc(p.why)+'</div></div>' : '') +
+            (hasProsConsList ? '<div class="pc-grid">' +
               '<div class="pc-col pros"><div class="h">Pros</div>' +
-                p.pros.map(function(x){ return '<div class="pc-item">'+icon("check",13,C.primary2)+' <span>'+esc(x)+'</span></div>'; }).join("") +
+                (p.pros||[]).map(function(x){ return '<div class="pc-item">'+icon("check",13,C.primary2)+' <span>'+esc(x)+'</span></div>'; }).join("") +
               '</div>' +
               '<div class="pc-col cons"><div class="h">Cons</div>' +
-                p.cons.map(function(x){ return '<div class="pc-item">'+icon("x",13,"#B23A24")+' <span>'+esc(x)+'</span></div>'; }).join("") +
+                (p.cons||[]).map(function(x){ return '<div class="pc-item">'+icon("x",13,"#B23A24")+' <span>'+esc(x)+'</span></div>'; }).join("") +
               '</div>' +
-            '</div>' +
-            '<div class="rating-box">' +
+            '</div>' : '') +
+            (hasRatingBox ? '<div class="rating-box">' +
               '<div style="display:flex;align-items:center;gap:6px;">'+starsHtml(p.userRating)+' <span style="font-size:12.5px;color:'+C.textMuted+';">'+p.userRating+'/5 ('+p.userCount+' ratings)</span></div>' +
-              '<div style="display:flex;align-items:center;gap:5px;">'+icon("award",14,C.accentDeep)+' <span style="font-size:12.5px;color:'+C.textMuted+';">Expert '+p.expertRating+'/10</span></div>' +
-            '</div>' +
+              (p.expertRating ? '<div style="display:flex;align-items:center;gap:5px;">'+icon("award",14,C.accentDeep)+' <span style="font-size:12.5px;color:'+C.textMuted+';">Expert '+p.expertRating+'/10</span></div>' : '') +
+            '</div>' : '') +
+            (p.isShopProduct ? '<div style="padding:14px 18px 4px;">'+cartControlHtml(p)+'</div>' : '') +
           '</div>' +
         '</div>' +
       '</div>';
@@ -825,7 +912,7 @@ function renderOverlay(){
         '<button class="close-btn" data-action="close-compare-modal">'+icon("x",16,"#fff")+'</button></div>' +
         '<div style="overflow-x:auto;"><table><thead><tr><th style="width:130px;color:'+C.textMuted+';"></th>' +
           items.map(function(p){
-            return '<th style="min-width:180px;"><div class="th-inner"><div class="th-icon">'+icon(p.icon,17,C.primary2)+'</div>' +
+            return '<th style="min-width:180px;"><div class="th-inner"><div class="th-icon">'+productVisualHtml(p,17)+'</div>' +
               '<span class="serif" style="font-weight:700;color:'+C.primary+';">'+esc(p.name)+'</span></div></th>';
           }).join("") +
         '</tr></thead><tbody>' +
@@ -863,9 +950,7 @@ document.addEventListener("click", function(e){
       renderSidebar(); renderResults(); break;
     case "toggle-type":
       toggleInArray(state.types, value);
-      renderSidebar(); renderResults();
-      if (window.EH_refilter) window.EH_refilter(state.types);
-      break;
+      renderSidebar(); renderResults(); break;
     case "toggle-brand":
       toggleInArray(state.brands, value);
       renderSidebar(); renderResults(); break;
@@ -881,9 +966,7 @@ document.addEventListener("click", function(e){
     case "reset-filters":
       state.budgetIdx=null; state.types=[]; state.brands=[]; state.minEff=0; state.minWarranty=0; state.minScore=0; state.query="";
       document.getElementById("searchInput").value = "";
-      renderSidebar(); renderResults();
-      if (window.EH_refilter) window.EH_refilter(state.types);
-      break;
+      renderSidebar(); renderResults(); break;
     case "toggle-section":
       state.openSections[value] = !state.openSections[value];
       renderSidebar(); break;
@@ -901,6 +984,21 @@ document.addEventListener("click", function(e){
       state.showCompareModal = false; renderOverlay(); break;
     case "clear-compare":
       state.compare = []; state.showCompareModal = false; renderResults(); renderOverlay(); break;
+    case "add-to-cart": {
+      var prodToAdd = findProduct(value);
+      if (prodToAdd) { addShopProductToCart(prodToAdd); renderResults(); renderOverlay(); showCartToast(prodToAdd); }
+      break;
+    }
+    case "cart-inc": {
+      var prodInc = findProduct(value);
+      if (prodInc) { changeCartQty(prodInc, 1); renderResults(); renderOverlay(); }
+      break;
+    }
+    case "cart-dec": {
+      var prodDec = findProduct(value);
+      if (prodDec) { changeCartQty(prodDec, -1); renderResults(); renderOverlay(); }
+      break;
+    }
   }
 });
 
@@ -967,7 +1065,11 @@ document.addEventListener("keydown", function(e){
 // ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
-window.EH_getActiveTypes = function(){ return state.types; };
+window.SES_addShopProducts = function(items){
+  items.forEach(function(p){ PRODUCTS.push(p); });
+  renderSidebar();
+  renderResults();
+};
 
 renderStatic();
 renderAll();
@@ -975,12 +1077,13 @@ renderAll();
 
 <script type="module">
 // ---------------------------------------------------------------------------
-// EnergyHub connection — shows real products listed by local EnergyHub
-// shops, pulled live from the same Firestore project. Fully self-contained
-// (own script block, own DOM target) so it can never interfere with, or be
-// broken by, the rest of this page's script. Bridges to the page's type
-// filter (Solar/Wind/Hybrid) and to EnergyHub's own cart (same localStorage
-// key, same origin) via small window-level hooks below.
+// EnergyHub connection — pulls real products listed by local EnergyHub
+// shops (live, same Firestore project) and merges them directly into this
+// page's own PRODUCTS list, so they're mixed into normal browsing, search,
+// filtering, and even Compare/View Full Specs — reusing all of that
+// existing machinery rather than duplicating it. Kept in its own script
+// block (own Firebase app instance) so it can never break the rest of the
+// page even if Firestore is briefly unreachable.
 // ---------------------------------------------------------------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -996,110 +1099,37 @@ var firebaseConfig = {
 var ehApp = initializeApp(firebaseConfig, "energyhub-readonly");
 var ehDb = getFirestore(ehApp);
 
-function ehEsc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+var CATEGORY_TO_ICON = { solar: "sun", wind: "wind", hybrid: "zap", other: "leaf" };
+var CATEGORY_TO_TYPE = { solar: "Solar Panel", wind: "Wind Turbine", hybrid: "Hybrid Kit", other: "Other Renewable" };
 
-var CATEGORY_ICONS = {
-  solar: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj4KICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI0VGRjdEQiIvPgogIDxjaXJjbGUgY3g9IjkwIiBjeT0iMjgiIHI9IjE0IiBmaWxsPSIjRkZCNzAzIi8+CiAgPGcgc3Ryb2tlPSIjRkZCNzAzIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+CiAgICA8bGluZSB4MT0iOTAiIHkxPSI0IiB4Mj0iOTAiIHkyPSIxMCIvPgogICAgPGxpbmUgeDE9IjExMCIgeTE9IjI4IiB4Mj0iMTA0IiB5Mj0iMjgiLz4KICAgIDxsaW5lIHgxPSIxMDQiIHkxPSIxNCIgeDI9IjEwMCIgeTI9IjE4Ii8+CiAgPC9nPgogIDxyZWN0IHg9IjE0IiB5PSI0NiIgd2lkdGg9IjgwIiBoZWlnaHQ9IjU2IiByeD0iNCIgZmlsbD0iIzFGNUZCRiIvPgogIDxnIHN0cm9rZT0iI0VGRjdEQiIgc3Ryb2tlLXdpZHRoPSIyLjUiPgogICAgPGxpbmUgeDE9IjE0IiB5MT0iNjQiIHgyPSI5NCIgeTI9IjY0Ii8+CiAgICA8bGluZSB4MT0iMTQiIHkxPSI4MiIgeDI9Ijk0IiB5Mj0iODIiLz4KICAgIDxsaW5lIHgxPSIzNCIgeTE9IjQ2IiB4Mj0iMzQiIHkyPSIxMDIiLz4KICAgIDxsaW5lIHgxPSI1NCIgeTE9IjQ2IiB4Mj0iNTQiIHkyPSIxMDIiLz4KICAgIDxsaW5lIHgxPSI3NCIgeTE9IjQ2IiB4Mj0iNzQiIHkyPSIxMDIiLz4KICA8L2c+CiAgPHBvbHlnb24gcG9pbnRzPSIxMCwxMDIgOTgsMTAyIDEwOCwxMTIgMCwxMTIiIGZpbGw9IiMzNTQwMTYiLz4KICA8cmVjdCB4PSI0NiIgeT0iMTA2IiB3aWR0aD0iOCIgaGVpZ2h0PSIxMCIgZmlsbD0iIzZhODAyZCIvPgo8L3N2Zz4K",
-  wind: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj4KICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI0VGRjdEQiIvPgogIDxyZWN0IHg9IjU2IiB5PSI1MiIgd2lkdGg9IjgiIGhlaWdodD0iNTgiIGZpbGw9IiM2YTgwMmQiLz4KICA8cG9seWdvbiBwb2ludHM9IjUyLDExMCA2OCwxMTAgNzQsMTE2IDQ2LDExNiIgZmlsbD0iIzM1NDAxNiIvPgogIDxjaXJjbGUgY3g9IjYwIiBjeT0iNTAiIHI9IjYiIGZpbGw9IiMzNTQwMTYiLz4KICA8ZyBmaWxsPSIjMUY1RkJGIj4KICAgIDxwYXRoIGQ9Ik02MCw1MCBDNjAsNTAgNTgsMTggNDQsMTQgQzQ0LDE0IDQ4LDQyIDYwLDUwIFoiLz4KICAgIDxwYXRoIGQ9Ik02MCw1MCBDNjAsNTAgODYsMzYgODYsMjAgQzg2LDIwIDYyLDI2IDYwLDUwIFoiLz4KICAgIDxwYXRoIGQ9Ik02MCw1MCBDNjAsNTAgNzgsNzIgNjIsODggQzYyLDg4IDU0LDY0IDYwLDUwIFoiLz4KICA8L2c+Cjwvc3ZnPgo=",
-  hybrid: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj4KICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI0VGRjdEQiIvPgogIDxjaXJjbGUgY3g9IjM4IiBjeT0iMzIiIHI9IjEyIiBmaWxsPSIjRkZCNzAzIi8+CiAgPGcgc3Ryb2tlPSIjRkZCNzAzIiBzdHJva2Utd2lkdGg9IjMuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgIDxsaW5lIHgxPSIzOCIgeTE9IjEyIiB4Mj0iMzgiIHkyPSIxNyIvPgogICAgPGxpbmUgeDE9IjUzIiB5MT0iMzIiIHgyPSI0OCIgeTI9IjMyIi8+CiAgICA8bGluZSB4MT0iNDkiIHkxPSIyMSIgeDI9IjQ2IiB5Mj0iMjQiLz4KICA8L2c+CiAgPGcgZmlsbD0iIzFGNUZCRiI+CiAgICA8cGF0aCBkPSJNOTIsMzQgQzkyLDM0IDkwLDEwIDc4LDcgQzc4LDcgODEsMjggOTIsMzQgWiIvPgogICAgPHBhdGggZD0iTTkyLDM0IEM5MiwzNCAxMTEsMjQgMTExLDEyIEMxMTEsMTIgOTMsMTYgOTIsMzQgWiIvPgogIDwvZz4KICA8cmVjdCB4PSI4OCIgeT0iMzQiIHdpZHRoPSI1IiBoZWlnaHQ9IjIwIiBmaWxsPSIjNmE4MDJkIi8+CiAgPHBvbHlnb24gcG9pbnRzPSI2Niw0NCA0Niw3OCA2MCw3OCA1MiwxMTIgOTAsNjYgNzQsNjYgODQsNDQiIGZpbGw9IiMzNTQwMTYiLz4KICA8cG9seWdvbiBwb2ludHM9IjY2LDQ0IDQ2LDc4IDYwLDc4IDUyLDExMiA5MCw2NiA3NCw2NiA4NCw0NCIgZmlsbD0iI0ZGQjcwMyIgb3BhY2l0eT0iMC4xNSIvPgo8L3N2Zz4K"
-};
-var CATEGORY_LABELS = { solar: "☀️ Solar", wind: "💨 Wind", hybrid: "⚡ Hybrid" };
-// Maps this page's existing type-toggle labels to EnergyHub's category values.
-var TYPE_TO_CATEGORY = { "Solar Panel": "solar", "Wind Turbine": "wind", "Hybrid Kit": "hybrid" };
-
-var ehAllProducts = []; // cached after first load, so filtering is instant
-
-function ehProductImg(p){
-  return p.photoURL || CATEGORY_ICONS[p.category] || CATEGORY_ICONS.hybrid;
-}
-
-// Adds an item to EnergyHub's own cart — same localStorage key, same
-// origin, so anything added here shows up directly in EnergyHub's cart.
-var EH_CART_KEY = "ehub_cart_v1";
-function ehAddToCart(p){
-  var cart = [];
-  try { cart = JSON.parse(localStorage.getItem(EH_CART_KEY) || "[]"); } catch(e){ cart = []; }
-  var existing = cart.find(function(item){ return item.shopId === p.shopId && item.productId === p.productId; });
-  if (existing){
-    existing.qty += 1;
-  } else {
-    cart.push({
-      shopId: p.shopId, shopName: p.shopName, productId: p.productId, name: p.name,
-      price: p.price, unit: p.unit || "", photoURL: p.photoURL || "", category: p.category || "",
-      shopOwnerUid: p.shopOwnerUid || "", qty: 1, selected: true
-    });
-  }
-  localStorage.setItem(EH_CART_KEY, JSON.stringify(cart));
-}
-
-function ehCardHtml(p, idx){
-  var priceText = "₹" + Number(p.price || 0).toLocaleString("en-IN") + (p.unit ? " " + ehEsc(p.unit) : "");
-  return '' +
-    '<div class="eh-product-card" ' +
-      'style="display:flex;flex-direction:column;width:158px;flex-shrink:0;' +
-      'background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E3EEE6;box-shadow:0 1px 3px rgba(0,0,0,0.06);">' +
-      '<a href="EnergyHub.html?shop=' + encodeURIComponent(p.shopId) + '" style="text-decoration:none;color:inherit;">' +
-        '<div style="width:100%;height:96px;background:#EFF7DB;">' +
-          '<img src="' + ehProductImg(p) + '" alt="" style="width:100%;height:100%;object-fit:cover;">' +
-        '</div>' +
-      '</a>' +
-      '<div style="padding:8px 10px 10px;">' +
-        (p.category ? '<div style="font-size:10px;font-weight:700;color:#1B4332;">' + CATEGORY_LABELS[p.category] + '</div>' : '') +
-        '<a href="EnergyHub.html?shop=' + encodeURIComponent(p.shopId) + '" style="text-decoration:none;color:inherit;">' +
-          '<div style="font-size:12.5px;font-weight:700;color:#1B2B22;line-height:1.3;margin-top:2px;' +
-            'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + ehEsc(p.name) + '</div>' +
-        '</a>' +
-        '<div style="font-size:11px;color:#5C6F63;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + ehEsc(p.shopName) + '</div>' +
-        '<div style="font-size:13px;font-weight:800;color:#1B4332;margin-top:4px;">' + priceText + '</div>' +
-        '<button type="button" data-eh-add="' + idx + '" ' +
-          'style="margin-top:6px;width:100%;background:#1B4332;color:#fff;border:none;border-radius:8px;padding:6px 0;font-size:11.5px;font-weight:700;cursor:pointer;">' +
-          '+ Add to Cart' +
-        '</button>' +
-      '</div>' +
-    '</div>';
-}
-
-function ehRender(activeTypes){
-  var sectionEl = document.getElementById("energyHubSection");
-  if (!sectionEl) return;
-
-  var activeCategories = (activeTypes || []).map(function(t){ return TYPE_TO_CATEGORY[t]; }).filter(Boolean);
-  var visible = activeCategories.length
-    ? ehAllProducts.filter(function(p){ return activeCategories.indexOf(p.category) !== -1; })
-    : ehAllProducts;
-
-  if (ehAllProducts.length === 0){
-    sectionEl.innerHTML = "";
-    return;
-  }
-  if (visible.length === 0){
-    sectionEl.innerHTML = '' +
-      '<div style="margin:0 0 8px;">' +
-        '<div style="font-size:15px;font-weight:800;color:#1B2B22;">🏪 From EnergyHub Local Shops</div>' +
-        '<div style="font-size:12px;color:#5C6F63;margin-top:4px;">No shops have that category listed yet.</div>' +
-      '</div>';
-    return;
-  }
-
-  var cardsHtml = visible.slice(0, 24).map(function(p, i){ return ehCardHtml(p, i); }).join("");
-  sectionEl.innerHTML = '' +
-    '<div style="margin:0 0 8px;">' +
-      '<div style="font-size:15px;font-weight:800;color:#1B2B22;display:flex;align-items:center;gap:6px;">🏪 From EnergyHub Local Shops</div>' +
-      '<div style="font-size:12px;color:#5C6F63;margin-top:2px;">Live products from shops near you — tap to view, or add straight to your cart</div>' +
-    '</div>' +
-    '<div style="display:flex;gap:10px;overflow-x:auto;padding:2px 2px 12px;-webkit-overflow-scrolling:touch;">' + cardsHtml + '</div>';
-
-  // Wire the Add to Cart buttons for the currently visible slice.
-  sectionEl.querySelectorAll("[data-eh-add]").forEach(function(btn){
-    btn.addEventListener("click", function(){
-      var p = visible[Number(btn.getAttribute("data-eh-add"))];
-      ehAddToCart(p);
-      var original = btn.textContent;
-      btn.textContent = "✓ Added";
-      btn.style.background = "#3F7D4C";
-      setTimeout(function(){ btn.textContent = original; btn.style.background = "#1B4332"; }, 1200);
-    });
-  });
+function transformToCatalogShape(prod, shop){
+  return {
+    id: "eh_" + shop.id + "_" + prod.id,
+    isShopProduct: true,
+    shopId: shop.id,
+    productId: prod.id,
+    shopOwnerUid: shop.data.ownerUid || "",
+    category: prod.category || "other",
+    type: CATEGORY_TO_TYPE[prod.category] || "Other Renewable",
+    icon: CATEGORY_TO_ICON[prod.category] || "leaf",
+    photoURL: prod.photoURL || "",
+    brand: (prod.brand && prod.brand.trim()) || shop.data.name || "Local Shop",
+    name: prod.name,
+    price: Number(prod.price) || 0,
+    unitRaw: prod.unit || "",
+    capacityLabel: prod.unit || "—",
+    efficiency: (typeof prod.efficiency === "number") ? prod.efficiency : 0,
+    warranty: (typeof prod.warrantyYears === "number") ? prod.warrantyYears : 0,
+    score: (typeof prod.score === "number") ? prod.score : 80,
+    bestFor: prod.bestFor || "",
+    userRating: 0,
+    userCount: 0,
+    expertRating: 0,
+    specs: Array.isArray(prod.specs) ? prod.specs.map(function(s){ return [s.label, s.value]; }) : [],
+    pros: Array.isArray(prod.pros) ? prod.pros : [],
+    cons: Array.isArray(prod.cons) ? prod.cons : [],
+    why: prod.why || ""
+  };
 }
 
 async function loadEnergyHubProducts(){
@@ -1108,38 +1138,31 @@ async function loadEnergyHubProducts(){
     var shopDocs = [];
     shopsSnap.forEach(function(d){ shopDocs.push({ id: d.id, data: d.data() }); });
 
-    var allProducts = [];
+    var merged = [];
     for (var i = 0; i < shopDocs.length; i++){
       var shop = shopDocs[i];
       try {
         var prodSnap = await getDocs(collection(ehDb, "shops", shop.id, "products"));
         prodSnap.forEach(function(pDoc){
           var prod = pDoc.data();
+          prod.id = pDoc.id;
           if (prod.outOfStock) return;
-          allProducts.push({
-            productId: pDoc.id, name: prod.name, price: prod.price, unit: prod.unit || "",
-            category: prod.category || "", photoURL: prod.photoURL || "",
-            shopId: shop.id, shopName: shop.data.name, shopOwnerUid: shop.data.ownerUid || ""
-          });
+          merged.push(transformToCatalogShape(prod, shop));
         });
       } catch (innerErr){
         console.warn("Could not load products for shop", shop.id, innerErr);
       }
     }
 
-    ehAllProducts = allProducts;
-    ehRender(window.EH_getActiveTypes ? window.EH_getActiveTypes() : []);
+    if (merged.length && window.SES_addShopProducts) window.SES_addShopProducts(merged);
   } catch (err){
     console.warn("Could not load EnergyHub products:", err);
   }
 }
 
-// Bridge for the page's existing Solar/Wind/Hybrid toggles (defined in the
-// other script block) to re-filter this section without needing to touch
-// or depend on that script's internals.
-window.EH_refilter = function(activeTypes){ ehRender(activeTypes); };
-
 loadEnergyHubProducts();
 </script>
+</body>
+</html>
 </body>
 </html>
