@@ -678,6 +678,7 @@
           <option value="solar">☀️ Solar</option>
           <option value="wind">💨 Wind</option>
           <option value="hybrid">⚡ Hybrid</option>
+          <option value="other">🌍 Others</option>
         </select>
       </div>
       <div class="field">
@@ -703,6 +704,60 @@
         <label for="prodDesc">Short Description <span class="hint">(optional, max 120 chars)</span></label>
         <textarea id="prodDesc" maxlength="120" placeholder="Brand, specs, warranty, etc."></textarea>
       </div>
+
+      <details style="margin:8px 0 4px;">
+        <summary style="cursor:pointer;font-weight:700;color:var(--primary2);font-size:13px;padding:6px 0;">+ Add more product details (optional — shows in Smart Energy Search)</summary>
+        <div style="padding-top:8px;">
+          <div class="field">
+            <label for="prodBrand">Brand <span class="hint">(optional, defaults to shop name)</span></label>
+            <input id="prodBrand" type="text" maxlength="40" placeholder="e.g. SunCrest">
+          </div>
+          <div class="field">
+            <label for="prodBestFor">Best For <span class="hint">(optional)</span></label>
+            <input id="prodBestFor" type="text" maxlength="80" placeholder="e.g. Rooftop homes with strong sunlight">
+          </div>
+          <div class="field">
+            <label for="prodScore">Suitability Score % <span class="hint">(optional, 0–100)</span></label>
+            <input id="prodScore" type="number" min="0" max="100" step="1" placeholder="e.g. 85">
+          </div>
+          <div class="field">
+            <label for="prodWarrantyYears">Warranty (years) <span class="hint">(optional)</span></label>
+            <input id="prodWarrantyYears" type="number" min="0" step="1" placeholder="e.g. 10">
+          </div>
+          <div class="field">
+            <label for="prodEfficiency">Efficiency % <span class="hint">(optional)</span></label>
+            <input id="prodEfficiency" type="number" min="0" max="100" step="0.1" placeholder="e.g. 20.5">
+          </div>
+          <div class="field">
+            <label>Key Specs <span class="hint">(optional, up to 3)</span></label>
+            <div style="display:flex;gap:6px;margin-bottom:6px;">
+              <input id="prodSpec1Label" type="text" maxlength="24" placeholder="Label e.g. Wattage" style="flex:1;">
+              <input id="prodSpec1Value" type="text" maxlength="30" placeholder="Value e.g. 550 W" style="flex:1;">
+            </div>
+            <div style="display:flex;gap:6px;margin-bottom:6px;">
+              <input id="prodSpec2Label" type="text" maxlength="24" placeholder="Label" style="flex:1;">
+              <input id="prodSpec2Value" type="text" maxlength="30" placeholder="Value" style="flex:1;">
+            </div>
+            <div style="display:flex;gap:6px;">
+              <input id="prodSpec3Label" type="text" maxlength="24" placeholder="Label" style="flex:1;">
+              <input id="prodSpec3Value" type="text" maxlength="30" placeholder="Value" style="flex:1;">
+            </div>
+          </div>
+          <div class="field">
+            <label for="prodPros">Pros <span class="hint">(optional, comma-separated)</span></label>
+            <input id="prodPros" type="text" maxlength="200" placeholder="e.g. Best-in-class efficiency, Low degradation">
+          </div>
+          <div class="field">
+            <label for="prodCons">Cons <span class="hint">(optional, comma-separated)</span></label>
+            <input id="prodCons" type="text" maxlength="200" placeholder="e.g. Higher upfront cost">
+          </div>
+          <div class="field">
+            <label for="prodWhy">Why it's recommended <span class="hint">(optional)</span></label>
+            <textarea id="prodWhy" maxlength="160" placeholder="e.g. Great payback for high-sun sites"></textarea>
+          </div>
+        </div>
+      </details>
+
       <div class="field" style="display:flex;align-items:center;gap:8px;">
         <input id="prodOutOfStock" type="checkbox" style="width:auto;">
         <label for="prodOutOfStock" style="margin:0;">Currently out of stock</label>
@@ -737,7 +792,7 @@
   <div class="payment-modal">
 
     <div id="payStateConfirm" class="pay-state">
-      <div class="pay-icon">🛒</div>
+      <div class="pay-icon" id="payIconBox">🛒</div>
       <h3>Confirm Your Order</h3>
       <p id="payConfirmSummary" class="pay-summary-text"></p>
       <div class="pay-actions">
@@ -913,12 +968,14 @@ function shopFallbackIconHtml(){
 var CATEGORY_ICONS = {
   solar: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj4KICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI0VGRjdEQiIvPgogIDxjaXJjbGUgY3g9IjkwIiBjeT0iMjgiIHI9IjE0IiBmaWxsPSIjRkZCNzAzIi8+CiAgPGcgc3Ryb2tlPSIjRkZCNzAzIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+CiAgICA8bGluZSB4MT0iOTAiIHkxPSI0IiB4Mj0iOTAiIHkyPSIxMCIvPgogICAgPGxpbmUgeDE9IjExMCIgeTE9IjI4IiB4Mj0iMTA0IiB5Mj0iMjgiLz4KICAgIDxsaW5lIHgxPSIxMDQiIHkxPSIxNCIgeDI9IjEwMCIgeTI9IjE4Ii8+CiAgPC9nPgogIDxyZWN0IHg9IjE0IiB5PSI0NiIgd2lkdGg9IjgwIiBoZWlnaHQ9IjU2IiByeD0iNCIgZmlsbD0iIzFGNUZCRiIvPgogIDxnIHN0cm9rZT0iI0VGRjdEQiIgc3Ryb2tlLXdpZHRoPSIyLjUiPgogICAgPGxpbmUgeDE9IjE0IiB5MT0iNjQiIHgyPSI5NCIgeTI9IjY0Ii8+CiAgICA8bGluZSB4MT0iMTQiIHkxPSI4MiIgeDI9Ijk0IiB5Mj0iODIiLz4KICAgIDxsaW5lIHgxPSIzNCIgeTE9IjQ2IiB4Mj0iMzQiIHkyPSIxMDIiLz4KICAgIDxsaW5lIHgxPSI1NCIgeTE9IjQ2IiB4Mj0iNTQiIHkyPSIxMDIiLz4KICAgIDxsaW5lIHgxPSI3NCIgeTE9IjQ2IiB4Mj0iNzQiIHkyPSIxMDIiLz4KICA8L2c+CiAgPHBvbHlnb24gcG9pbnRzPSIxMCwxMDIgOTgsMTAyIDEwOCwxMTIgMCwxMTIiIGZpbGw9IiMzNTQwMTYiLz4KICA8cmVjdCB4PSI0NiIgeT0iMTA2IiB3aWR0aD0iOCIgaGVpZ2h0PSIxMCIgZmlsbD0iIzZhODAyZCIvPgo8L3N2Zz4K",
   wind: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj4KICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI0VGRjdEQiIvPgogIDxyZWN0IHg9IjU2IiB5PSI1MiIgd2lkdGg9IjgiIGhlaWdodD0iNTgiIGZpbGw9IiM2YTgwMmQiLz4KICA8cG9seWdvbiBwb2ludHM9IjUyLDExMCA2OCwxMTAgNzQsMTE2IDQ2LDExNiIgZmlsbD0iIzM1NDAxNiIvPgogIDxjaXJjbGUgY3g9IjYwIiBjeT0iNTAiIHI9IjYiIGZpbGw9IiMzNTQwMTYiLz4KICA8ZyBmaWxsPSIjMUY1RkJGIj4KICAgIDxwYXRoIGQ9Ik02MCw1MCBDNjAsNTAgNTgsMTggNDQsMTQgQzQ0LDE0IDQ4LDQyIDYwLDUwIFoiLz4KICAgIDxwYXRoIGQ9Ik02MCw1MCBDNjAsNTAgODYsMzYgODYsMjAgQzg2LDIwIDYyLDI2IDYwLDUwIFoiLz4KICAgIDxwYXRoIGQ9Ik02MCw1MCBDNjAsNTAgNzgsNzIgNjIsODggQzYyLDg4IDU0LDY0IDYwLDUwIFoiLz4KICA8L2c+Cjwvc3ZnPgo=",
-  hybrid: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj4KICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI0VGRjdEQiIvPgogIDxjaXJjbGUgY3g9IjM4IiBjeT0iMzIiIHI9IjEyIiBmaWxsPSIjRkZCNzAzIi8+CiAgPGcgc3Ryb2tlPSIjRkZCNzAzIiBzdHJva2Utd2lkdGg9IjMuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgIDxsaW5lIHgxPSIzOCIgeTE9IjEyIiB4Mj0iMzgiIHkyPSIxNyIvPgogICAgPGxpbmUgeDE9IjUzIiB5MT0iMzIiIHgyPSI0OCIgeTI9IjMyIi8+CiAgICA8bGluZSB4MT0iNDkiIHkxPSIyMSIgeDI9IjQ2IiB5Mj0iMjQiLz4KICA8L2c+CiAgPGcgZmlsbD0iIzFGNUZCRiI+CiAgICA8cGF0aCBkPSJNOTIsMzQgQzkyLDM0IDkwLDEwIDc4LDcgQzc4LDcgODEsMjggOTIsMzQgWiIvPgogICAgPHBhdGggZD0iTTkyLDM0IEM5MiwzNCAxMTEsMjQgMTExLDEyIEMxMTEsMTIgOTMsMTYgOTIsMzQgWiIvPgogIDwvZz4KICA8cmVjdCB4PSI4OCIgeT0iMzQiIHdpZHRoPSI1IiBoZWlnaHQ9IjIwIiBmaWxsPSIjNmE4MDJkIi8+CiAgPHBvbHlnb24gcG9pbnRzPSI2Niw0NCA0Niw3OCA2MCw3OCA1MiwxMTIgOTAsNjYgNzQsNjYgODQsNDQiIGZpbGw9IiMzNTQwMTYiLz4KICA8cG9seWdvbiBwb2ludHM9IjY2LDQ0IDQ2LDc4IDYwLDc4IDUyLDExMiA5MCw2NiA3NCw2NiA4NCw0NCIgZmlsbD0iI0ZGQjcwMyIgb3BhY2l0eT0iMC4xNSIvPgo8L3N2Zz4K"
+  hybrid: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj4KICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI0VGRjdEQiIvPgogIDxjaXJjbGUgY3g9IjM4IiBjeT0iMzIiIHI9IjEyIiBmaWxsPSIjRkZCNzAzIi8+CiAgPGcgc3Ryb2tlPSIjRkZCNzAzIiBzdHJva2Utd2lkdGg9IjMuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgIDxsaW5lIHgxPSIzOCIgeTE9IjEyIiB4Mj0iMzgiIHkyPSIxNyIvPgogICAgPGxpbmUgeDE9IjUzIiB5MT0iMzIiIHgyPSI0OCIgeTI9IjMyIi8+CiAgICA8bGluZSB4MT0iNDkiIHkxPSIyMSIgeDI9IjQ2IiB5Mj0iMjQiLz4KICA8L2c+CiAgPGcgZmlsbD0iIzFGNUZCRiI+CiAgICA8cGF0aCBkPSJNOTIsMzQgQzkyLDM0IDkwLDEwIDc4LDcgQzc4LDcgODEsMjggOTIsMzQgWiIvPgogICAgPHBhdGggZD0iTTkyLDM0IEM5MiwzNCAxMTEsMjQgMTExLDEyIEMxMTEsMTIgOTMsMTYgOTIsMzQgWiIvPgogIDwvZz4KICA8cmVjdCB4PSI4OCIgeT0iMzQiIHdpZHRoPSI1IiBoZWlnaHQ9IjIwIiBmaWxsPSIjNmE4MDJkIi8+CiAgPHBvbHlnb24gcG9pbnRzPSI2Niw0NCA0Niw3OCA2MCw3OCA1MiwxMTIgOTAsNjYgNzQsNjYgODQsNDQiIGZpbGw9IiMzNTQwMTYiLz4KICA8cG9seWdvbiBwb2ludHM9IjY2LDQ0IDQ2LDc4IDYwLDc4IDUyLDExMiA5MCw2NiA3NCw2NiA4NCw0NCIgZmlsbD0iI0ZGQjcwMyIgb3BhY2l0eT0iMC4xNSIvPgo8L3N2Zz4K",
+  other: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj4KICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI0VGRjdEQiIvPgogIDxwYXRoIGQ9Ik02MCwxMDAgQzYwLDEwMCAzMCw4NSAzMCw1NSBDMzAsMzAgNTUsMTUgOTAsMTggQzkwLDUwIDc4LDgwIDYwLDEwMCBaIiBmaWxsPSIjNmE4MDJkIi8+CiAgPHBhdGggZD0iTTYwLDEwMCBDNjAsMTAwIDYwLDYwIDkwLDE4IiBzdHJva2U9IiMzNTQwMTYiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPgogIDxjaXJjbGUgY3g9IjYwIiBjeT0iMzAiIHI9IjEwIiBmaWxsPSIjRkZCNzAzIi8+CiAgPGcgc3Ryb2tlPSIjRkZCNzAzIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+CiAgICA8bGluZSB4MT0iNjAiIHkxPSIxMiIgeDI9IjYwIiB5Mj0iMTciLz4KICAgIDxsaW5lIHgxPSI3OCIgeTE9IjMwIiB4Mj0iNzMiIHkyPSIzMCIvPgogICAgPGxpbmUgeDE9Ijc0IiB5MT0iMTkiIHgyPSI3MSIgeTI9IjIyIi8+CiAgPC9nPgo8L3N2Zz4K"
 };
 function categoryLabel(cat){
   if (cat === "solar") return "☀️ Solar";
   if (cat === "wind") return "💨 Wind";
   if (cat === "hybrid") return "⚡ Hybrid";
+  if (cat === "other") return "🌍 Others";
   return "";
 }
 function productImageHtml(product){
@@ -2720,6 +2777,14 @@ function openPaymentFlow(items, total, itemCount){
   pendingOrderTotal = total;
   document.getElementById("payConfirmSummary").textContent =
     itemCount + " item(s) · Total ₹" + total.toLocaleString("en-IN");
+  var iconBox = document.getElementById("payIconBox");
+  if (items && items[0]){
+    iconBox.innerHTML = productImageHtml(items[0]);
+    iconBox.style.borderRadius = "12px";
+    iconBox.style.overflow = "hidden";
+  } else {
+    iconBox.textContent = "🛒";
+  }
   showPayState("payStateConfirm");
   paymentOverlay.classList.add("show");
 }
@@ -3036,6 +3101,17 @@ document.getElementById("productForm").addEventListener("submit", async function
   saveBtn.disabled = true;
   saveBtn.textContent = "Saving…";
 
+  var specs = [];
+  [["prodSpec1Label","prodSpec1Value"],["prodSpec2Label","prodSpec2Value"],["prodSpec3Label","prodSpec3Value"]].forEach(function(pair){
+    var lbl = document.getElementById(pair[0]).value.trim();
+    var val = document.getElementById(pair[1]).value.trim();
+    if (lbl && val) specs.push({ label: lbl, value: val });
+  });
+  var prosText = document.getElementById("prodPros").value.trim();
+  var consText = document.getElementById("prodCons").value.trim();
+  var pros = prosText ? prosText.split(",").map(function(s){ return s.trim(); }).filter(Boolean) : [];
+  var cons = consText ? consText.split(",").map(function(s){ return s.trim(); }).filter(Boolean) : [];
+
   var newProduct = {
     name: name,
     price: Number(price),
@@ -3043,6 +3119,15 @@ document.getElementById("productForm").addEventListener("submit", async function
     category: category,
     description: desc,
     outOfStock: document.getElementById("prodOutOfStock").checked,
+    brand: document.getElementById("prodBrand").value.trim(),
+    bestFor: document.getElementById("prodBestFor").value.trim(),
+    score: document.getElementById("prodScore").value ? Number(document.getElementById("prodScore").value) : null,
+    warrantyYears: document.getElementById("prodWarrantyYears").value ? Number(document.getElementById("prodWarrantyYears").value) : null,
+    efficiency: document.getElementById("prodEfficiency").value ? Number(document.getElementById("prodEfficiency").value) : null,
+    specs: specs,
+    pros: pros,
+    cons: cons,
+    why: document.getElementById("prodWhy").value.trim(),
     createdAt: window.EHUB.serverTimestamp()
   };
 
