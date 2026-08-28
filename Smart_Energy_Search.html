@@ -161,6 +161,8 @@
   .detail-body{padding:22px;}
   .detail-top{display:flex;gap:14px;align-items:center;margin-bottom:18px;}
   .detail-icon{width:64px;height:64px;border-radius:12px;background:var(--card);display:flex;align-items:center;justify-content:center;}
+  .detail-icon-wrap{position:relative;flex-shrink:0;}
+  .detail-shop-badge{position:absolute;top:-8px;right:-10px;background:#1B4332;color:#fff;font-size:9px;font-weight:700;border-radius:999px;padding:3px 8px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.2);text-decoration:none;}
   .detail-price{font-size:22px;font-weight:800;}
   .pill{display:inline-block;color:#fff;font-size:11.5px;font-weight:800;border-radius:999px;padding:3px 9px;margin-top:4px;}
   .box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px;}
@@ -283,7 +285,7 @@
       <span id="serpUsageBadge" class="serp-usage-badge"></span>
     </div>
     <div id="liveResultsSection"></div>
-    <div class="demo-note">Includes an illustrative demo catalog alongside live products from real EnergyHub shops near you — look for the "🏪 Available in Shop" tag.</div>
+    <div class="demo-note">Includes an illustrative demo catalog alongside live products from real EnergyHub shops near you — look for the "🛍️ Available in Shop" tag.</div>
     <div id="resultsList"></div>
   </main>
 </div>
@@ -537,7 +539,7 @@ function cardHtml(p){
       productVisualHtml(p, 40) +
       (p.score != null ? '<div class="score-badge" style="background:'+scoreColor(p.score)+';">'+p.score+'%</div>' : '') +
     '</div>' +
-    (p.isShopProduct ? '<div class="shop-badge">🏪 Available in Shop</div>' : '') +
+    (p.isShopProduct ? '<div class="shop-badge">🛍️ Available in Shop</div>' : '') +
     '</div>' +
     '<div class="card-main">' +
       '<div class="card-head">' +
@@ -862,11 +864,12 @@ function renderOverlay(){
           '</div>' +
           '<div class="detail-body">' +
             '<div class="detail-top">' +
-              '<div class="detail-icon">'+productVisualHtml(p,30)+'</div>' +
+              '<div class="detail-icon-wrap"><div class="detail-icon">'+productVisualHtml(p,30)+'</div>' +
+                (p.isShopProduct ? '<a href="EnergyHub.html?shop='+encodeURIComponent(p.shopId)+'" class="detail-shop-badge">🛍️ Available in Shop</a>' : '') +
+              '</div>' +
               '<div><div class="detail-price">'+money(p.price)+'</div>' +
               (p.score != null ? '<span class="pill" style="background:'+scoreColor(p.score)+';">'+p.score+'% Suitability</span>' : '') + '</div>' +
             '</div>' +
-            (p.isShopProduct ? '<div class="box" style="background:#EFF7DB;"><a href="EnergyHub.html?shop='+encodeURIComponent(p.shopId)+'" style="color:#1B4332;font-weight:700;text-decoration:none;">🏪 Available in Shop — View '+esc(p.brand)+' in EnergyHub →</a></div>' : '') +
             (hasSpecsList ? '<div class="box"><div class="box-title">'+icon("battery",15,C.primary2)+' Key Specs</div>' +
               p.specs.map(function(row){
                 return '<div class="spec-row"><span class="k">'+esc(row[0])+'</span><span class="v">'+esc(row[1])+'</span></div>';
