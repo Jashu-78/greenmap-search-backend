@@ -739,8 +739,8 @@
         <input id="prodCons" type="text" maxlength="200" placeholder="e.g. Higher upfront cost" required>
       </div>
       <div class="field">
-        <label for="prodWhy">Why it's recommended *</label>
-        <textarea id="prodWhy" maxlength="160" placeholder="e.g. Great payback for high-sun sites" required></textarea>
+        <label for="prodWhy">Why it's recommended <span class="hint">(optional)</span></label>
+        <textarea id="prodWhy" maxlength="160" placeholder="e.g. Great payback for high-sun sites"></textarea>
       </div>
 
       <div class="field" style="display:flex;align-items:center;gap:8px;">
@@ -1697,7 +1697,7 @@ async function refreshOwnedShops(){
           '</div>' +
           '<div class="menu-shop-actions">' +
             '<button type="button" class="msa-btn" data-act="locate">📍 Locate</button>' +
-            '<button type="button" class="msa-btn" data-act="profile">🏪 View Profile</button>' +
+            '<button type="button" class="msa-btn" data-act="profile">🛍️ View Profile</button>' +
             '<button type="button" class="msa-btn" data-act="orders">📥 Orders Received</button>' +
           '</div>';
 
@@ -3131,7 +3131,7 @@ document.getElementById("productForm").addEventListener("submit", async function
   var cons = consText ? consText.split(",").map(function(s){ return s.trim(); }).filter(Boolean) : [];
 
   if (!name || !price || !category || !unit || !desc || !brand || !bestFor || !scoreVal ||
-      !warrantyVal || !efficiencyVal || !specsComplete || pros.length === 0 || cons.length === 0 || !why || !currentProductShopId){
+      !warrantyVal || !efficiencyVal || !specsComplete || pros.length === 0 || cons.length === 0 || !currentProductShopId){
     errorBox.textContent = !category ? "Please select a product category." : "Please fill in all the required fields — every field is mandatory.";
     errorBox.classList.add("show");
     return;
