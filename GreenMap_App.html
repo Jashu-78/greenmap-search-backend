@@ -716,6 +716,7 @@ function notifIconFor(type){
   if (type === "update") return "🆕";
   if (type === "order") return "📦";
   if (type === "login") return "👤";
+  if (type === "follow") return "👥";
   return "🔔";
 }
 
@@ -741,6 +742,7 @@ async function fetchNotifications(){
       type: d.type || "general",
       title: d.title || "Notification",
       message: d.message || "",
+      link: d.link || "",
       time: time
     });
   });
@@ -781,6 +783,7 @@ async function renderNotificationList(){
       items.forEach(function(n){
         var row = document.createElement("div");
         row.className = "notif-item";
+        if (n.link) row.style.cursor = "pointer";
         row.innerHTML =
           '<div class="notif-icon">' + notifIconFor(n.type) + '</div>' +
           '<div class="notif-text">' +
@@ -789,6 +792,11 @@ async function renderNotificationList(){
           '</div>';
         row.querySelector(".notif-title").textContent = n.title;
         row.querySelector(".notif-sub").textContent = n.message;
+        if (n.link){
+          row.addEventListener("click", function(){
+            window.location.href = n.link;
+          });
+        }
         listEl.appendChild(row);
       });
       clearRow.style.display = "block";
@@ -871,6 +879,7 @@ async function checkOrderStageNotifications(){
           title: label,
           message: itemNames + " • " + formatStageTime(createdMs + i * STAGE_SECONDS * 1000),
           targetUids: [user.uid],
+          link: "EnergyHub.html?openOrders=1",
           createdAt: serverTimestamp()
         }));
       }
@@ -886,6 +895,7 @@ async function checkOrderStageNotifications(){
             title: "How was your order?",
             message: "Leave a review for " + ((order.items && order.items[0] && order.items[0].name) || "your order"),
             targetUids: [user.uid],
+            link: (order.items && order.items[0] && order.items[0].shopId) ? "EnergyHub.html?shop=" + encodeURIComponent(order.items[0].shopId) : "EnergyHub.html?openOrders=1",
             createdAt: serverTimestamp()
           }));
         }
@@ -916,6 +926,7 @@ async function checkOrderStageNotifications(){
           title: TRACKER_STAGES[j] + " — " + (order.buyerName || "Buyer") + "'s order",
           message: (myItemNames || "Order") + " at " + formatStageTime(createdMs + j * STAGE_SECONDS * 1000),
           targetUids: [user.uid],
+          link: "EnergyHub.html?openSellerOrders=1&shop=" + encodeURIComponent((order.shopIds && order.shopIds[0]) || ""),
           createdAt: serverTimestamp()
         }));
       }
