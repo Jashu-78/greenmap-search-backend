@@ -152,7 +152,9 @@
   #homeScreen .notif-header{background:var(--primary);color:#fff;padding:18px 20px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:space-between;}
   #homeScreen .notif-close{background:none;border:none;color:#fff;font-size:18px;cursor:pointer;}
   #homeScreen .notif-items{flex:1;overflow-y:auto;}
-  #homeScreen .notif-item{display:flex;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);cursor:pointer;}
+  #homeScreen .notif-item{display:flex;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);cursor:pointer;align-items:center;}
+  #homeScreen .notif-chevron{margin-left:auto;color:var(--textMuted);font-size:18px;flex-shrink:0;}
+  #homeScreen .notif-item:not(.notif-clickable){cursor:default;}
   #homeScreen .notif-item:hover{background:var(--card);}
   #homeScreen .notif-icon{font-size:20px;flex-shrink:0;}
   #homeScreen .notif-title{font-size:13.5px;font-weight:700;color:var(--textDark);}
@@ -783,7 +785,6 @@ async function renderNotificationList(){
       items.forEach(function(n){
         var row = document.createElement("div");
         row.className = "notif-item";
-        if (n.link) row.style.cursor = "pointer";
         row.innerHTML =
           '<div class="notif-icon">' + notifIconFor(n.type) + '</div>' +
           '<div class="notif-text">' +
@@ -793,6 +794,8 @@ async function renderNotificationList(){
         row.querySelector(".notif-title").textContent = n.title;
         row.querySelector(".notif-sub").textContent = n.message;
         if (n.link){
+          row.classList.add("notif-clickable");
+          row.innerHTML += '<div class="notif-chevron">›</div>';
           row.addEventListener("click", function(){
             window.location.href = n.link;
           });
