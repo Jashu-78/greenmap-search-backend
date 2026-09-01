@@ -551,7 +551,7 @@ function timeBasedGreeting(){
 
 function updateGreeting(user){
   var greetingEl = document.getElementById("greetingText");
-  var name = user ? firstNameOf(user.displayName) : "";
+  var name = user ? (user.displayName || "").trim() : "";
   greetingEl.textContent = timeBasedGreeting() + (name ? ", " + name : "");
 }
 
