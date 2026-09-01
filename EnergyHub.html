@@ -886,9 +886,8 @@ window.EHUB_checkRedirectResult = async function(){
   try {
     var result = await getRedirectResult(auth);
     if (result && result.user){
-      window.currentUser = result.user;
-      if (typeof updateUserChip === "function") updateUserChip();
-      if (typeof refreshOwnedShops === "function") refreshOwnedShops();
+      if (typeof window.EHUB_setCurrentUser === "function") window.EHUB_setCurrentUser(result.user);
+      else window.currentUser = result.user;
       if (sessionStorage.getItem("ehub_pending_add_shop") === "1"){
         sessionStorage.removeItem("ehub_pending_add_shop");
         if (typeof enterPinMode === "function") enterPinMode();
@@ -913,12 +912,10 @@ if (document.readyState === "complete"){
 // navigated here. Same Firebase project + same domain means the session
 // is already shared; this just makes EnergyHub actually check for it.
 onAuthStateChanged(auth, function(user){
-  if (user){
-    window.currentUser = user;
-    if (typeof updateUserChip === "function") updateUserChip();
-    if (typeof refreshOwnedShops === "function") refreshOwnedShops();
+  if (typeof window.EHUB_setCurrentUser === "function"){
+    window.EHUB_setCurrentUser(user);
   } else {
-    window.currentUser = null;
+    window.currentUser = user;
     if (typeof updateUserChip === "function") updateUserChip();
   }
   if (typeof window.tryHandleQueryDeepLinks === "function") window.tryHandleQueryDeepLinks();
@@ -1241,6 +1238,18 @@ async function findPlaceOnMap(){
 // Phase 2: Add My Shop — sign in, drop a pin, fill details, save to Firestore
 // ---------------------------------------------------------------------------
 var currentUser = null;
+// Keeps the local `currentUser` (used everywhere in this script) in sync
+// with `window.currentUser` (set by the Firebase auth listener in the
+// module script). Without this, an already-signed-in session (auto
+// picked up on page load) never updates local currentUser, so
+// currentUser.displayName stays empty and things like Follow fall back
+// to "Someone".
+window.EHUB_setCurrentUser = function(user){
+  currentUser = user;
+  window.currentUser = user;
+  if (typeof updateUserChip === "function") updateUserChip();
+  if (typeof refreshOwnedShops === "function") refreshOwnedShops();
+};
 var pinMarker = null;
 var pinLatLng = null;
 
@@ -1328,7 +1337,7 @@ function updateUserChip(){
   var menuSubEl = document.getElementById("menuUserSub");
 
   if (currentUser){
-    nameEl.textContent = firstNameOf(currentUser.displayName) || "You";
+    nameEl.textContent = currentUser.displayName || "You";
     menuNameEl.textContent = currentUser.displayName || "Signed in";
     menuSubEl.textContent = currentUser.email || "";
     if (currentUser.photoURL){
