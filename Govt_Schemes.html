@@ -91,7 +91,7 @@
   <div class="header-inner">
     <div class="logo-row">
       <button class="back-btn" onclick="location.href='GreenMap_App.html'">←</button>
-      <div class="logo-icon-slot">🏛️</div>
+      <div class="logo-icon-slot">⌂</div>
       <div class="logo-text-wrap">
         <div class="logo-text serif">Govt Schemes</div>
         <div class="logo-sub">SOLAR &amp; WIND INCENTIVES</div>
@@ -111,11 +111,11 @@
 
 <div class="cat-row" id="catRow">
   <div class="cat-pill active" data-cat="all">All</div>
-  <div class="cat-pill" data-cat="central">🏛️ Central</div>
-  <div class="cat-pill" data-cat="state">📍 AP State</div>
-  <div class="cat-pill" data-cat="solar">☀️ Solar</div>
-  <div class="cat-pill" data-cat="wind">🌬️ Wind</div>
-  <div class="cat-pill" data-cat="farmer">🌾 Farmer</div>
+  <div class="cat-pill" data-cat="central">Central</div>
+  <div class="cat-pill" data-cat="state">AP State</div>
+  <div class="cat-pill" data-cat="solar">Solar</div>
+  <div class="cat-pill" data-cat="wind">Wind</div>
+  <div class="cat-pill" data-cat="farmer">Farmer</div>
 </div>
 
 <div class="inner">
@@ -149,17 +149,24 @@
     </div>
 
     <div class="box">
-      <div class="box-title">📋 About this scheme</div>
+      <div class="box-title">About this scheme</div>
       <p id="detailDesc"></p>
     </div>
 
     <div class="box">
-      <div class="box-title">🔑 Key Details</div>
+      <div class="box-title">Key Details</div>
       <div id="detailSpecs"></div>
     </div>
 
+    <div class="box">
+      <div class="box-title">Registration &amp; Validity</div>
+      <div class="spec-row"><span>Registration</span><b id="detailRegDate"></b></div>
+      <div class="spec-row"><span>Expiry / Deadline</span><b id="detailExpiryDate"></b></div>
+      <div class="spec-row"><span>Benefits from Govt</span><b id="detailBenefitsFromGovt"></b></div>
+    </div>
+
     <div class="source-box">
-      <div class="box-title" style="margin-bottom:2px;">🔗 Official Source</div>
+      <div class="box-title" style="margin-bottom:2px;">Official Source</div>
       <div class="source-link-row">
         <a id="detailSourceLink" href="#" target="_blank" rel="noopener"></a>
         <span>↗</span>
@@ -180,7 +187,7 @@ var SCHEMES = [
     title: "PM Surya Ghar: Muft Bijli Yojana",
     org: "Ministry of New & Renewable Energy (MNRE)",
     cat: ["central","solar"],
-    icon: "☀️",
+    icon: "☀",
     domain: "mnre.gov.in",
     benefit: "Up to ₹78,000 subsidy",
     desc: "A central government scheme that helps households install rooftop solar panels and get free electricity. It offers a direct subsidy paid into the homeowner's bank account after installation and DISCOM inspection, aiming to cover up to 300 units of free power per month for typical households.",
@@ -190,6 +197,9 @@ var SCHEMES = [
       ["Apply via", "pmsuryaghar.gov.in national portal"],
       ["Payout time", "Typically 30-45 days after commissioning"]
     ],
+    regDate: "Launched 15 Feb 2024 — open, ongoing",
+    expiryDate: "No fixed deadline (subject to yearly budget allocation)",
+    benefitsFromGovt: "Direct bank subsidy + up to 300 free units/month",
     source: "https://pmsuryaghar.gov.in/",
     trust: 100
   },
@@ -198,7 +208,7 @@ var SCHEMES = [
     title: "PM-KUSUM Yojana",
     org: "Ministry of New & Renewable Energy (MNRE)",
     cat: ["central","solar","farmer"],
-    icon: "🚜",
+    icon: "⚙",
     domain: "mnre.gov.in",
     benefit: "Up to 60% subsidy",
     desc: "Pradhan Mantri Kisan Urja Suraksha evam Utthaan Mahabhiyan supports farmers in setting up solar power plants, standalone solar irrigation pumps, and solarizing existing grid-connected pumps — cutting diesel costs and even letting farmers sell surplus power back to DISCOMs.",
@@ -208,6 +218,9 @@ var SCHEMES = [
       ["Eligible", "Individual farmers, cooperatives, panchayats, FPOs"],
       ["Apply via", "pmkusum.mnre.gov.in"]
     ],
+    regDate: "Launched 2019 — extended, ongoing",
+    expiryDate: "Extended to 31 Mar 2026 (may be revised further)",
+    benefitsFromGovt: "60% combined central + state subsidy on system cost",
     source: "https://mnre.gov.in/en/pradhan-mantri-kisan-urja-suraksha-evam-utthaan-mahabhiyaan-pm-kusum/",
     trust: 100
   },
@@ -216,7 +229,7 @@ var SCHEMES = [
     title: "AP Rooftop Solar (via NREDCAP)",
     org: "New & Renewable Energy Development Corporation of AP (NREDCAP)",
     cat: ["state","solar"],
-    icon: "🏠",
+    icon: "⌂",
     domain: "nredcap.in",
     benefit: "State facilitation + central subsidy",
     desc: "NREDCAP is the Andhra Pradesh state nodal agency that coordinates rooftop solar rollout with APEPDCL and APSPDCL DISCOMs. It maintains the state's empanelled vendor list and helps residents access the central PM Surya Ghar subsidy through local processing.",
@@ -226,6 +239,9 @@ var SCHEMES = [
       ["Vendor list", "Must use an NREDCAP-empanelled installer"],
       ["Apply via", "nredcap.in or your local DISCOM office"]
     ],
+    regDate: "Ongoing state coordination role",
+    expiryDate: "No fixed deadline — tied to PM Surya Ghar timeline",
+    benefitsFromGovt: "Facilitates access to central rooftop solar subsidy",
     source: "https://nredcap.in/",
     trust: 95
   },
@@ -234,7 +250,7 @@ var SCHEMES = [
     title: "AP Free Rooftop Solar for SC/ST Households",
     org: "Government of Andhra Pradesh + NREDCAP",
     cat: ["state","solar"],
-    icon: "🤝",
+    icon: "◈",
     domain: "ap.gov.in",
     benefit: "Free 2kWp system",
     desc: "A state welfare initiative providing free 2 kilowatt-peak rooftop solar systems — including installation and five years of maintenance — to SC/ST households as part of Andhra Pradesh's push toward wider rooftop solar coverage.",
@@ -244,6 +260,9 @@ var SCHEMES = [
       ["Backward Class support", "Up to ₹80,000 subsidy (₹60k central + ₹20k state)"],
       ["Coordinated by", "DISCOMs and NREDCAP"]
     ],
+    regDate: "AP state welfare initiative — ongoing",
+    expiryDate: "Target: 3 lakh connections by June 2025 (rolling)",
+    benefitsFromGovt: "Fully free 2kWp system + 5 years free maintenance",
     source: "https://www.eqmagpro.com/andhra-pradesh-targets-three-lakh-rooftop-solar-connections-by-june-2025-eq/",
     trust: 85
   },
@@ -252,7 +271,7 @@ var SCHEMES = [
     title: "AP Solar Power Policy",
     org: "Government of Andhra Pradesh (NREDCAP nodal agency)",
     cat: ["state","solar","wind"],
-    icon: "📜",
+    icon: "▤",
     domain: "nredcap.in",
     benefit: "Fee waivers & incentives",
     desc: "The state's core policy framework for utility-scale and commercial solar power projects in AP — covering land allotment support, exemptions from certain supervision charges, and simplified clearances for developers setting up large solar installations.",
@@ -262,8 +281,32 @@ var SCHEMES = [
       ["Benefits", "Evacuation infrastructure fee exemptions, faster clearances"],
       ["Document", "AP Solar Power Policy (NREDCAP official PDF)"]
     ],
+    regDate: "AP Solar Power Policy 2018 — in force",
+    expiryDate: "Policy period as notified by GoAP (check portal for updates)",
+    benefitsFromGovt: "Land support, fee exemptions, faster project clearances",
     source: "https://nredcap.in/pdfs/pages/solar_power_policy.pdf",
     trust: 95
+  },
+  {
+    id: "national-wind-solar-hybrid",
+    title: "National Wind-Solar Hybrid Policy",
+    org: "Ministry of New & Renewable Energy (MNRE)",
+    cat: ["central","solar","wind"],
+    icon: "≋",
+    domain: "mnre.gov.in",
+    benefit: "Grid support & incentives",
+    desc: "A central policy promoting large-scale grid-connected wind-solar hybrid systems to optimize transmission infrastructure and land use, improve grid stability, and reduce variability of renewable power output by combining wind and solar generation at the same site.",
+    specs: [
+      ["Focus", "Combined wind + solar power plants at shared sites"],
+      ["Aim", "Better transmission infrastructure utilization & grid stability"],
+      ["Eligible", "Utility-scale renewable energy developers"],
+      ["Apply via", "State nodal agency and respective DISCOM"]
+    ],
+    regDate: "Notified 2018 — in force",
+    expiryDate: "No fixed deadline (ongoing central policy)",
+    benefitsFromGovt: "Transmission and grid-connectivity incentives for hybrid projects",
+    source: "https://mnre.gov.in/en/national-wind-solar-hybrid-policy/",
+    trust: 100
   }
 ];
 
@@ -335,14 +378,18 @@ function getFiltered(){
   });
 }
 
+var PAGE_SIZE = 4;
+var visibleCount = PAGE_SIZE;
+
 function renderList(){
-  var list = getFiltered();
+  var full = getFiltered();
+  var list = full.slice(0, visibleCount);
   var listEl = document.getElementById("schemeList");
   var countEl = document.getElementById("resultCount");
   var emptyEl = document.getElementById("emptyState");
   renderSearchHistory();
-  countEl.textContent = list.length + (list.length === 1 ? " scheme found" : " schemes found");
-  if (list.length === 0){
+  countEl.textContent = full.length + (full.length === 1 ? " scheme found" : " schemes found");
+  if (full.length === 0){
     listEl.innerHTML = "";
     emptyEl.style.display = "block";
     return;
@@ -358,16 +405,28 @@ function renderList(){
         '<div class="scheme-title">' + s.title + '</div>' +
         '<div class="scheme-org">' + s.org + '</div>' +
         '<div class="scheme-desc">' + s.desc.slice(0, 90) + (s.desc.length > 90 ? '…' : '') + '</div>' +
-        '<div class="trust-pill">🛡️ ' + s.trust + '% trusted source</div>' +
+        '<div class="trust-pill">' + s.trust + '% trusted source</div>' +
       '</div>' +
     '</div>';
   }).join("");
+
+  if (full.length > visibleCount){
+    listEl.innerHTML += '<button id="showMoreBtn" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--line);background:#fff;color:var(--primary2);font-weight:700;font-size:13.5px;cursor:pointer;margin-top:4px;">Show More</button>';
+  }
 
   Array.prototype.forEach.call(listEl.querySelectorAll(".scheme-card"), function(card){
     card.addEventListener("click", function(){
       openDetail(card.getAttribute("data-id"));
     });
   });
+
+  var showMoreBtn = document.getElementById("showMoreBtn");
+  if (showMoreBtn){
+    showMoreBtn.addEventListener("click", function(){
+      visibleCount += PAGE_SIZE;
+      renderList();
+    });
+  }
 }
 
 function openDetail(id){
@@ -382,6 +441,9 @@ function openDetail(id){
   document.getElementById("detailSpecs").innerHTML = s.specs.map(function(row){
     return '<div class="spec-row"><span>' + row[0] + '</span><b>' + row[1] + '</b></div>';
   }).join("");
+  document.getElementById("detailRegDate").textContent = s.regDate || "—";
+  document.getElementById("detailExpiryDate").textContent = s.expiryDate || "—";
+  document.getElementById("detailBenefitsFromGovt").textContent = s.benefitsFromGovt || "—";
   var link = document.getElementById("detailSourceLink");
   link.href = s.source;
   link.textContent = s.source;
@@ -404,12 +466,14 @@ Array.prototype.forEach.call(document.querySelectorAll(".cat-pill"), function(pi
     Array.prototype.forEach.call(document.querySelectorAll(".cat-pill"), function(p){ p.classList.remove("active"); });
     pill.classList.add("active");
     activeCat = pill.getAttribute("data-cat");
+    visibleCount = PAGE_SIZE;
     renderList();
   });
 });
 
 document.getElementById("schemeSearchInput").addEventListener("input", function(e){
   searchQuery = e.target.value;
+  visibleCount = PAGE_SIZE;
   renderList();
 });
 
@@ -435,6 +499,7 @@ document.getElementById("schemeRefreshBtn").addEventListener("click", function()
   document.getElementById("schemeSearchInput").value = "";
   searchQuery = "";
   activeCat = "all";
+  visibleCount = PAGE_SIZE;
   Array.prototype.forEach.call(document.querySelectorAll(".cat-pill"), function(p){ p.classList.remove("active"); });
   document.querySelector('.cat-pill[data-cat="all"]').classList.add("active");
   renderList();
