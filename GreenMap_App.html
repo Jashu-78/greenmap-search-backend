@@ -252,6 +252,13 @@
           <div class="option-card-sub">Find and buy from local solar & wind energy shops near you</div>
         </div>
       </a>
+      <a class="option-card" href="Govt_Schemes.html">
+        <div class="option-icon-slot" style="width:100px;height:100px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--card);border-radius:16px;font-size:44px;">🏛️</div>
+        <div>
+          <div style="font-family:Georgia,'Cambria',serif;font-weight:800;font-size:20px;color:#fff;">Govt Schemes</div>
+          <div class="option-card-sub">Explore solar & wind subsidies and incentives</div>
+        </div>
+      </a>
     </div>
   </div>
 </div>
@@ -551,7 +558,7 @@ function timeBasedGreeting(){
 
 function updateGreeting(user){
   var greetingEl = document.getElementById("greetingText");
-  var name = user ? (user.displayName || "").trim() : "";
+  var name = user ? firstNameOf(user.displayName) : "";
   greetingEl.textContent = timeBasedGreeting() + (name ? ", " + name : "");
 }
 
