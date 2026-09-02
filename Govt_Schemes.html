@@ -55,6 +55,8 @@
   .trust-pill{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;color:var(--primary2);margin-top:6px;}
 
   .empty-state{text-align:center;padding:40px 20px;color:var(--textMuted);font-size:13.5px;}
+  .history-chip{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--textDark);}
+  .history-chip svg{flex-shrink:0;opacity:.6;}
 
   .overlay-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:60;}
   .overlay-backdrop.open{display:block;}
@@ -117,6 +119,13 @@
 </div>
 
 <div class="inner">
+  <div id="searchHistoryBox" style="display:none;margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div style="font-size:12.5px;font-weight:800;color:var(--primary);text-transform:uppercase;letter-spacing:.04em;">Recent Searches</div>
+      <button id="clearHistoryBtn" style="background:none;border:none;color:var(--accentDeep);font-weight:700;font-size:11.5px;cursor:pointer;">Clear</button>
+    </div>
+    <div id="searchHistoryChips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+  </div>
   <div class="result-count" id="resultCount"></div>
   <div id="schemeList"></div>
   <div class="empty-state" id="emptyState" style="display:none;">No schemes match your search.</div>
@@ -260,6 +269,58 @@ var SCHEMES = [
 
 var activeCat = "all";
 var searchQuery = "";
+var SEARCH_HISTORY_KEY = "govtSchemes_searchHistory";
+
+function getSearchHistory(){
+  try{
+    var raw = localStorage.getItem(SEARCH_HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+
+function saveSearchTerm(term){
+  term = term.trim();
+  if (!term) return;
+  try{
+    var hist = getSearchHistory();
+    hist = hist.filter(function(t){ return t.toLowerCase() !== term.toLowerCase(); });
+    hist.unshift(term);
+    if (hist.length > 8) hist = hist.slice(0, 8);
+    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(hist));
+  }catch(e){}
+}
+
+function clearSearchHistory(){
+  try{ localStorage.removeItem(SEARCH_HISTORY_KEY); }catch(e){}
+  renderSearchHistory();
+}
+
+function renderSearchHistory(){
+  var box = document.getElementById("searchHistoryBox");
+  var chipsEl = document.getElementById("searchHistoryChips");
+  var hist = getSearchHistory();
+  var showHistory = activeCat === "all" && !searchQuery.trim() && hist.length > 0;
+  if (!showHistory){
+    box.style.display = "none";
+    return;
+  }
+  box.style.display = "block";
+  chipsEl.innerHTML = hist.map(function(term){
+    return '<div class="history-chip" data-term="' + term.replace(/"/g, "&quot;") + '">' +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>' +
+      term + '</div>';
+  }).join("");
+  Array.prototype.forEach.call(chipsEl.querySelectorAll(".history-chip"), function(chip){
+    chip.addEventListener("click", function(){
+      var term = chip.getAttribute("data-term");
+      document.getElementById("schemeSearchInput").value = term;
+      searchQuery = term;
+      renderList();
+    });
+  });
+}
+
+document.getElementById("clearHistoryBtn").addEventListener("click", clearSearchHistory);
 
 function faviconUrl(domain){
   return "https://www.google.com/s2/favicons?sz=128&domain=" + domain;
@@ -279,6 +340,7 @@ function renderList(){
   var listEl = document.getElementById("schemeList");
   var countEl = document.getElementById("resultCount");
   var emptyEl = document.getElementById("emptyState");
+  renderSearchHistory();
   countEl.textContent = list.length + (list.length === 1 ? " scheme found" : " schemes found");
   if (list.length === 0){
     listEl.innerHTML = "";
@@ -349,6 +411,20 @@ Array.prototype.forEach.call(document.querySelectorAll(".cat-pill"), function(pi
 document.getElementById("schemeSearchInput").addEventListener("input", function(e){
   searchQuery = e.target.value;
   renderList();
+});
+
+document.getElementById("schemeSearchInput").addEventListener("keydown", function(e){
+  if (e.key === "Enter" && e.target.value.trim()){
+    saveSearchTerm(e.target.value);
+    renderSearchHistory();
+  }
+});
+
+document.getElementById("schemeSearchInput").addEventListener("blur", function(e){
+  if (e.target.value.trim()){
+    saveSearchTerm(e.target.value);
+    renderSearchHistory();
+  }
 });
 
 document.getElementById("schemeRefreshBtn").addEventListener("click", function(){
