@@ -3,87 +3,368 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Govt Schemes - GreenMap AI</title>
+<title>GreenMap AI — Govt Schemes</title>
 <style>
   :root{
     --primary:#1B4332; --primary2:#2D6A4F; --primaryDeep:#224E3B; --mint:#95D5B2;
     --accent:#FFB703; --accentDeep:#B8860B; --sky:#219EBC; --skyDeep:#0B4C68;
     --bg:#F7FAF7; --card:#E9F4EC; --textDark:#1B2B22; --textMuted:#5C6F63; --line:#DCEAE1;
   }
-  *{box-sizing:border-box;}
-  body{margin:0;background:var(--bg);color:var(--textDark);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
-  .topbar{background:var(--primary);color:#fff;padding:14px 20px;position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;}
-  .back-btn{width:32px;height:32px;border-radius:8px;background:var(--primaryDeep);border:none;color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
-  .topbar-title{font-weight:800;font-size:17px;}
-  .inner{max-width:640px;margin:0 auto;padding:18px 16px 40px;}
-  .intro{font-size:13px;color:var(--textMuted);margin-bottom:16px;line-height:1.5;}
-  .scheme-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
-  .scheme-card.state{border-left:4px solid var(--accent);}
-  .scheme-card.central{border-left:4px solid var(--sky);}
-  .scheme-title{font-weight:800;font-size:15.5px;margin-bottom:4px;color:var(--primaryDeep);}
-  .scheme-badge{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;margin-bottom:8px;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{background:var(--bg);}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:var(--textDark);}
+  .serif{font-family:Georgia,'Cambria',serif;}
+  button{font-family:inherit;}
+  a{color:inherit;text-decoration:none;}
+
+  .header{background:var(--primary);color:#fff;padding:14px 20px;position:sticky;top:0;z-index:30;}
+  .header-inner{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:12px;}
+  .logo-row{display:flex;align-items:center;gap:10px;}
+  .back-btn{width:34px;height:34px;border-radius:9px;background:var(--primaryDeep);border:none;color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+  .logo-icon-slot{width:36px;height:36px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:19px;}
+  .logo-text-wrap{display:flex;flex-direction:column;line-height:1.1;}
+  .logo-text{font-weight:800;font-size:16.5px;}
+  .logo-sub{font-size:10px;color:var(--mint);letter-spacing:1px;}
+
+  .search-row{display:flex;gap:8px;align-items:center;}
+  .search-wrap{flex:1;position:relative;}
+  .search-wrap svg.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);}
+  .search-wrap input{width:100%;padding:9px 12px 9px 34px;border-radius:8px;border:none;background:var(--primaryDeep);color:#fff;font-size:13.5px;}
+  .search-wrap input::placeholder{color:#B7D4C3;}
+  .icon-btn{flex-shrink:0;width:38px;height:38px;border-radius:8px;border:none;background:var(--primaryDeep);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .icon-btn svg{transition:transform .5s;}
+
+  .cat-row{display:flex;gap:8px;overflow-x:auto;padding:10px 16px;background:var(--card);}
+  .cat-pill{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;border:1.5px solid var(--line);background:#fff;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .cat-pill.active{background:var(--primary2);color:#fff;border-color:var(--primary2);}
+
+  .inner{max-width:640px;margin:0 auto;padding:16px;}
+  .result-count{font-size:12.5px;color:var(--textMuted);margin-bottom:12px;}
+
+  .scheme-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.04);cursor:pointer;display:flex;gap:12px;}
+  .scheme-card:active{background:var(--card);}
+  .scheme-thumb{width:60px;height:60px;border-radius:12px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;overflow:hidden;}
+  .scheme-thumb img{width:100%;height:100%;object-fit:contain;padding:8px;}
+  .scheme-body{flex:1;min-width:0;}
+  .scheme-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;margin-bottom:4px;}
   .scheme-badge.central{background:#E4F4FA;color:var(--skyDeep);}
   .scheme-badge.state{background:#FFF3D6;color:var(--accentDeep);}
-  .scheme-desc{font-size:13px;color:var(--textDark);line-height:1.5;margin-bottom:8px;}
-  .scheme-meta{font-size:12px;color:var(--textMuted);display:flex;flex-direction:column;gap:3px;}
-  .scheme-meta b{color:var(--textDark);}
-  .section-label{font-size:12.5px;font-weight:800;color:var(--primary);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 10px;}
-  .footnote{font-size:11.5px;color:var(--textMuted);margin-top:18px;line-height:1.5;}
+  .scheme-title{font-weight:800;font-size:14.5px;color:var(--primaryDeep);margin-bottom:2px;}
+  .scheme-org{font-size:11.5px;color:var(--textMuted);margin-bottom:4px;}
+  .scheme-desc{font-size:12.5px;color:var(--textDark);line-height:1.4;}
+  .trust-pill{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;color:var(--primary2);margin-top:6px;}
+
+  .empty-state{text-align:center;padding:40px 20px;color:var(--textMuted);font-size:13.5px;}
+
+  .overlay-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:60;}
+  .overlay-backdrop.open{display:block;}
+  .detail-sheet{display:none;position:fixed;left:0;right:0;bottom:0;top:6%;background:var(--bg);z-index:61;border-radius:20px 20px 0 0;overflow-y:auto;box-shadow:0 -8px 30px rgba(0,0,0,.25);}
+  .detail-sheet.open{display:block;}
+  .detail-top{background:var(--primary);color:#fff;padding:16px 18px;position:sticky;top:0;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .detail-close{width:30px;height:30px;border-radius:50%;background:var(--primaryDeep);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+  .detail-inner{max-width:640px;margin:0 auto;padding:18px 16px 40px;}
+  .detail-hero{display:flex;gap:14px;align-items:center;margin-bottom:16px;}
+  .detail-thumb{width:74px;height:74px;border-radius:14px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:32px;overflow:hidden;flex-shrink:0;}
+  .detail-thumb img{width:100%;height:100%;object-fit:contain;padding:10px;}
+  .detail-price-badge{display:inline-flex;align-items:center;gap:5px;background:var(--primary2);color:#fff;font-weight:700;font-size:12.5px;padding:5px 12px;border-radius:999px;}
+  .box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:14px;}
+  .box-title{font-weight:800;font-size:13.5px;color:var(--primaryDeep);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+  .box p{font-size:13px;line-height:1.55;color:var(--textDark);}
+  .spec-row{display:flex;justify-content:space-between;padding:6px 0;font-size:12.5px;border-bottom:1px solid var(--line);gap:10px;}
+  .spec-row:last-child{border-bottom:none;}
+  .spec-row b{color:var(--textDark);text-align:right;}
+  .spec-row span:first-child{color:var(--textMuted);flex-shrink:0;}
+  .source-box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:14px;}
+  .source-link-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px;}
+  .source-link-row a{color:var(--sky);font-weight:700;font-size:12.5px;word-break:break-all;}
+  .trust-badge{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px;}
+  .trust-badge .pct{font-weight:800;font-size:17px;color:var(--primary2);}
+  .trust-badge .label{font-size:11.5px;color:var(--textMuted);line-height:1.3;}
+  .disclaimer{font-size:11px;color:var(--textMuted);line-height:1.5;margin-top:6px;}
 </style>
 </head>
 <body>
-  <div class="topbar">
-    <button class="back-btn" onclick="history.back()">←</button>
-    <div class="topbar-title">Govt Schemes</div>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="logo-row">
+      <button class="back-btn" onclick="location.href='GreenMap_App.html'">←</button>
+      <div class="logo-icon-slot">🏛️</div>
+      <div class="logo-text-wrap">
+        <div class="logo-text serif">Govt Schemes</div>
+        <div class="logo-sub">SOLAR &amp; WIND INCENTIVES</div>
+      </div>
+    </div>
+    <div class="search-row">
+      <div class="search-wrap">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B7D4C3" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input id="schemeSearchInput" type="text" placeholder="Search schemes, subsidies…" />
+      </div>
+      <button id="schemeRefreshBtn" class="icon-btn" aria-label="Refresh">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </button>
+    </div>
   </div>
-  <div class="inner">
-    <div class="intro">Explore central and Andhra Pradesh state government schemes, subsidies, and incentives for solar and wind energy adoption.</div>
+</div>
 
-    <div class="section-label">Central Govt Schemes</div>
+<div class="cat-row" id="catRow">
+  <div class="cat-pill active" data-cat="all">All</div>
+  <div class="cat-pill" data-cat="central">🏛️ Central</div>
+  <div class="cat-pill" data-cat="state">📍 AP State</div>
+  <div class="cat-pill" data-cat="solar">☀️ Solar</div>
+  <div class="cat-pill" data-cat="wind">🌬️ Wind</div>
+  <div class="cat-pill" data-cat="farmer">🌾 Farmer</div>
+</div>
 
-    <div class="scheme-card central">
-      <span class="scheme-badge central">Central</span>
-      <div class="scheme-title">PM Surya Ghar: Muft Bijli Yojana</div>
-      <div class="scheme-desc">Rooftop solar subsidy scheme offering up to 300 units of free electricity per month for households that install rooftop solar systems.</div>
-      <div class="scheme-meta">
-        <span><b>Subsidy:</b> Up to ₹78,000 depending on system size</span>
-        <span><b>Eligible:</b> Residential rooftop solar (1-3 kW+)</span>
-      </div>
+<div class="inner">
+  <div class="result-count" id="resultCount"></div>
+  <div id="schemeList"></div>
+  <div class="empty-state" id="emptyState" style="display:none;">No schemes match your search.</div>
+</div>
+
+<div class="overlay-backdrop" id="overlayBackdrop"></div>
+<div class="detail-sheet" id="detailSheet">
+  <div class="detail-top">
+    <div>
+      <div style="font-size:11px;color:var(--mint);font-weight:700;letter-spacing:.5px;" id="detailBadgeText">CENTRAL SCHEME</div>
+      <div style="font-weight:800;font-size:18px;" id="detailTitle">Scheme Name</div>
     </div>
-
-    <div class="scheme-card central">
-      <span class="scheme-badge central">Central</span>
-      <div class="scheme-title">PM-KUSUM Yojana</div>
-      <div class="scheme-desc">Supports farmers with solar pumps and solar power plants on barren land, reducing diesel dependency for irrigation.</div>
-      <div class="scheme-meta">
-        <span><b>Subsidy:</b> 60% central+state subsidy, 30% loan, 10% farmer share</span>
-        <span><b>Eligible:</b> Farmers, cooperatives, panchayats</span>
-      </div>
-    </div>
-
-    <div class="section-label">Andhra Pradesh State Schemes</div>
-
-    <div class="scheme-card state">
-      <span class="scheme-badge state">AP State</span>
-      <div class="scheme-title">AP Solar Rooftop Subsidy Program</div>
-      <div class="scheme-desc">State-level top-up incentives for residential and MSME rooftop solar installations, aligned with the central PM Surya Ghar scheme.</div>
-      <div class="scheme-meta">
-        <span><b>Subsidy:</b> Varies by discom (APSPDCL / APEPDCL)</span>
-        <span><b>Eligible:</b> AP residents and small businesses</span>
-      </div>
-    </div>
-
-    <div class="scheme-card state">
-      <span class="scheme-badge state">AP State</span>
-      <div class="scheme-title">AP Wind & Solar Hybrid Policy</div>
-      <div class="scheme-desc">Encourages hybrid wind-solar power projects in AP with land allotment support and simplified clearances for developers.</div>
-      <div class="scheme-meta">
-        <span><b>Benefit:</b> Land/grid connectivity support, tax incentives</span>
-        <span><b>Eligible:</b> Commercial/industrial renewable developers</span>
-      </div>
-    </div>
-
-    <div class="footnote">Scheme details, subsidy amounts, and eligibility change frequently. Always confirm current terms on the official <b>PM Surya Ghar</b> portal or your local AP DISCOM office before applying.</div>
+    <button class="detail-close" id="detailCloseBtn">✕</button>
   </div>
+  <div class="detail-inner">
+    <div class="detail-hero">
+      <div class="detail-thumb" id="detailThumb"></div>
+      <div>
+        <div class="detail-price-badge" id="detailBenefitBadge">Subsidy</div>
+      </div>
+    </div>
+
+    <div class="box">
+      <div class="box-title">📋 About this scheme</div>
+      <p id="detailDesc"></p>
+    </div>
+
+    <div class="box">
+      <div class="box-title">🔑 Key Details</div>
+      <div id="detailSpecs"></div>
+    </div>
+
+    <div class="source-box">
+      <div class="box-title" style="margin-bottom:2px;">🔗 Official Source</div>
+      <div class="source-link-row">
+        <a id="detailSourceLink" href="#" target="_blank" rel="noopener"></a>
+        <span>↗</span>
+      </div>
+      <div class="trust-badge">
+        <div class="pct" id="detailTrustPct">100%</div>
+        <div class="label">Verified official government / trusted source</div>
+      </div>
+      <div class="disclaimer">Subsidy amounts and eligibility change periodically. Always confirm current terms on the official portal linked above before applying.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+var SCHEMES = [
+  {
+    id: "pm-surya-ghar",
+    title: "PM Surya Ghar: Muft Bijli Yojana",
+    org: "Ministry of New & Renewable Energy (MNRE)",
+    cat: ["central","solar"],
+    icon: "☀️",
+    domain: "mnre.gov.in",
+    benefit: "Up to ₹78,000 subsidy",
+    desc: "A central government scheme that helps households install rooftop solar panels and get free electricity. It offers a direct subsidy paid into the homeowner's bank account after installation and DISCOM inspection, aiming to cover up to 300 units of free power per month for typical households.",
+    specs: [
+      ["Subsidy", "₹30,000 for 1kW, ₹60,000 for 2kW, ₹78,000 for 3kW+"],
+      ["Eligible", "Residential rooftop solar owners"],
+      ["Apply via", "pmsuryaghar.gov.in national portal"],
+      ["Payout time", "Typically 30-45 days after commissioning"]
+    ],
+    source: "https://pmsuryaghar.gov.in/",
+    trust: 100
+  },
+  {
+    id: "pm-kusum",
+    title: "PM-KUSUM Yojana",
+    org: "Ministry of New & Renewable Energy (MNRE)",
+    cat: ["central","solar","farmer"],
+    icon: "🚜",
+    domain: "mnre.gov.in",
+    benefit: "Up to 60% subsidy",
+    desc: "Pradhan Mantri Kisan Urja Suraksha evam Utthaan Mahabhiyan supports farmers in setting up solar power plants, standalone solar irrigation pumps, and solarizing existing grid-connected pumps — cutting diesel costs and even letting farmers sell surplus power back to DISCOMs.",
+    specs: [
+      ["Subsidy", "30% central + 30% state, farmer pays ~10% (rest loan)"],
+      ["Components", "A: Solar plants · B: Standalone pumps · C: Pump solarization"],
+      ["Eligible", "Individual farmers, cooperatives, panchayats, FPOs"],
+      ["Apply via", "pmkusum.mnre.gov.in"]
+    ],
+    source: "https://mnre.gov.in/en/pradhan-mantri-kisan-urja-suraksha-evam-utthaan-mahabhiyaan-pm-kusum/",
+    trust: 100
+  },
+  {
+    id: "nredcap-ap-solar",
+    title: "AP Rooftop Solar (via NREDCAP)",
+    org: "New & Renewable Energy Development Corporation of AP (NREDCAP)",
+    cat: ["state","solar"],
+    icon: "🏠",
+    domain: "nredcap.in",
+    benefit: "State facilitation + central subsidy",
+    desc: "NREDCAP is the Andhra Pradesh state nodal agency that coordinates rooftop solar rollout with APEPDCL and APSPDCL DISCOMs. It maintains the state's empanelled vendor list and helps residents access the central PM Surya Ghar subsidy through local processing.",
+    specs: [
+      ["Role", "State coordination for PM Surya Ghar implementation"],
+      ["DISCOMs", "APEPDCL (coastal AP) and APSPDCL (Rayalaseema/south AP)"],
+      ["Vendor list", "Must use an NREDCAP-empanelled installer"],
+      ["Apply via", "nredcap.in or your local DISCOM office"]
+    ],
+    source: "https://nredcap.in/",
+    trust: 95
+  },
+  {
+    id: "ap-sc-st-free-rooftop",
+    title: "AP Free Rooftop Solar for SC/ST Households",
+    org: "Government of Andhra Pradesh + NREDCAP",
+    cat: ["state","solar"],
+    icon: "🤝",
+    domain: "ap.gov.in",
+    benefit: "Free 2kWp system",
+    desc: "A state welfare initiative providing free 2 kilowatt-peak rooftop solar systems — including installation and five years of maintenance — to SC/ST households as part of Andhra Pradesh's push toward wider rooftop solar coverage.",
+    specs: [
+      ["Benefit", "Free 2kWp system + 5 years maintenance"],
+      ["Eligible", "SC/ST households in Andhra Pradesh"],
+      ["Backward Class support", "Up to ₹80,000 subsidy (₹60k central + ₹20k state)"],
+      ["Coordinated by", "DISCOMs and NREDCAP"]
+    ],
+    source: "https://www.eqmagpro.com/andhra-pradesh-targets-three-lakh-rooftop-solar-connections-by-june-2025-eq/",
+    trust: 85
+  },
+  {
+    id: "ap-solar-power-policy",
+    title: "AP Solar Power Policy",
+    org: "Government of Andhra Pradesh (NREDCAP nodal agency)",
+    cat: ["state","solar","wind"],
+    icon: "📜",
+    domain: "nredcap.in",
+    benefit: "Fee waivers & incentives",
+    desc: "The state's core policy framework for utility-scale and commercial solar power projects in AP — covering land allotment support, exemptions from certain supervision charges, and simplified clearances for developers setting up large solar installations.",
+    specs: [
+      ["Nodal agency", "NREDCAP"],
+      ["Focus", "Utility-scale and commercial solar projects"],
+      ["Benefits", "Evacuation infrastructure fee exemptions, faster clearances"],
+      ["Document", "AP Solar Power Policy (NREDCAP official PDF)"]
+    ],
+    source: "https://nredcap.in/pdfs/pages/solar_power_policy.pdf",
+    trust: 95
+  }
+];
+
+var activeCat = "all";
+var searchQuery = "";
+
+function faviconUrl(domain){
+  return "https://www.google.com/s2/favicons?sz=128&domain=" + domain;
+}
+
+function getFiltered(){
+  return SCHEMES.filter(function(s){
+    var catMatch = activeCat === "all" || s.cat.indexOf(activeCat) !== -1;
+    var q = searchQuery.trim().toLowerCase();
+    var searchMatch = !q || (s.title + " " + s.org + " " + s.desc).toLowerCase().indexOf(q) !== -1;
+    return catMatch && searchMatch;
+  });
+}
+
+function renderList(){
+  var list = getFiltered();
+  var listEl = document.getElementById("schemeList");
+  var countEl = document.getElementById("resultCount");
+  var emptyEl = document.getElementById("emptyState");
+  countEl.textContent = list.length + (list.length === 1 ? " scheme found" : " schemes found");
+  if (list.length === 0){
+    listEl.innerHTML = "";
+    emptyEl.style.display = "block";
+    return;
+  }
+  emptyEl.style.display = "none";
+  listEl.innerHTML = list.map(function(s){
+    var badgeClass = s.cat.indexOf("central") !== -1 ? "central" : "state";
+    var badgeText = s.cat.indexOf("central") !== -1 ? "Central" : "AP State";
+    return '<div class="scheme-card" data-id="' + s.id + '">' +
+      '<div class="scheme-thumb"><img src="' + faviconUrl(s.domain) + '" alt="" onerror="this.style.display=\'none\';this.parentNode.textContent=\'' + s.icon + '\';" /></div>' +
+      '<div class="scheme-body">' +
+        '<span class="scheme-badge ' + badgeClass + '">' + badgeText + '</span>' +
+        '<div class="scheme-title">' + s.title + '</div>' +
+        '<div class="scheme-org">' + s.org + '</div>' +
+        '<div class="scheme-desc">' + s.desc.slice(0, 90) + (s.desc.length > 90 ? '…' : '') + '</div>' +
+        '<div class="trust-pill">🛡️ ' + s.trust + '% trusted source</div>' +
+      '</div>' +
+    '</div>';
+  }).join("");
+
+  Array.prototype.forEach.call(listEl.querySelectorAll(".scheme-card"), function(card){
+    card.addEventListener("click", function(){
+      openDetail(card.getAttribute("data-id"));
+    });
+  });
+}
+
+function openDetail(id){
+  var s = SCHEMES.filter(function(x){ return x.id === id; })[0];
+  if (!s) return;
+  var isCentral = s.cat.indexOf("central") !== -1;
+  document.getElementById("detailBadgeText").textContent = isCentral ? "CENTRAL SCHEME" : "AP STATE SCHEME";
+  document.getElementById("detailTitle").textContent = s.title;
+  document.getElementById("detailThumb").innerHTML = '<img src="' + faviconUrl(s.domain) + '" alt="" onerror="this.style.display=\'none\';this.parentNode.textContent=\'' + s.icon + '\';" />';
+  document.getElementById("detailBenefitBadge").textContent = s.benefit;
+  document.getElementById("detailDesc").textContent = s.desc;
+  document.getElementById("detailSpecs").innerHTML = s.specs.map(function(row){
+    return '<div class="spec-row"><span>' + row[0] + '</span><b>' + row[1] + '</b></div>';
+  }).join("");
+  var link = document.getElementById("detailSourceLink");
+  link.href = s.source;
+  link.textContent = s.source;
+  document.getElementById("detailTrustPct").textContent = s.trust + "%";
+
+  document.getElementById("overlayBackdrop").classList.add("open");
+  document.getElementById("detailSheet").classList.add("open");
+}
+
+function closeDetail(){
+  document.getElementById("overlayBackdrop").classList.remove("open");
+  document.getElementById("detailSheet").classList.remove("open");
+}
+
+document.getElementById("overlayBackdrop").addEventListener("click", closeDetail);
+document.getElementById("detailCloseBtn").addEventListener("click", closeDetail);
+
+Array.prototype.forEach.call(document.querySelectorAll(".cat-pill"), function(pill){
+  pill.addEventListener("click", function(){
+    Array.prototype.forEach.call(document.querySelectorAll(".cat-pill"), function(p){ p.classList.remove("active"); });
+    pill.classList.add("active");
+    activeCat = pill.getAttribute("data-cat");
+    renderList();
+  });
+});
+
+document.getElementById("schemeSearchInput").addEventListener("input", function(e){
+  searchQuery = e.target.value;
+  renderList();
+});
+
+document.getElementById("schemeRefreshBtn").addEventListener("click", function(){
+  var btn = this;
+  var svg = btn.querySelector("svg");
+  svg.style.transform = "rotate(360deg)";
+  setTimeout(function(){ svg.style.transform = "rotate(0deg)"; }, 500);
+  document.getElementById("schemeSearchInput").value = "";
+  searchQuery = "";
+  activeCat = "all";
+  Array.prototype.forEach.call(document.querySelectorAll(".cat-pill"), function(p){ p.classList.remove("active"); });
+  document.querySelector('.cat-pill[data-cat="all"]').classList.add("active");
+  renderList();
+});
+
+renderList();
+</script>
 </body>
 </html>
