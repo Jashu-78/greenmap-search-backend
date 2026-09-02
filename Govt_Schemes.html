@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Govt Schemes - GreenMap AI</title>
+<style>
+  :root{
+    --primary:#1B4332; --primary2:#2D6A4F; --primaryDeep:#224E3B; --mint:#95D5B2;
+    --accent:#FFB703; --accentDeep:#B8860B; --sky:#219EBC; --skyDeep:#0B4C68;
+    --bg:#F7FAF7; --card:#E9F4EC; --textDark:#1B2B22; --textMuted:#5C6F63; --line:#DCEAE1;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--textDark);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
+  .topbar{background:var(--primary);color:#fff;padding:14px 20px;position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;}
+  .back-btn{width:32px;height:32px;border-radius:8px;background:var(--primaryDeep);border:none;color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+  .topbar-title{font-weight:800;font-size:17px;}
+  .inner{max-width:640px;margin:0 auto;padding:18px 16px 40px;}
+  .intro{font-size:13px;color:var(--textMuted);margin-bottom:16px;line-height:1.5;}
+  .scheme-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+  .scheme-card.state{border-left:4px solid var(--accent);}
+  .scheme-card.central{border-left:4px solid var(--sky);}
+  .scheme-title{font-weight:800;font-size:15.5px;margin-bottom:4px;color:var(--primaryDeep);}
+  .scheme-badge{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;margin-bottom:8px;}
+  .scheme-badge.central{background:#E4F4FA;color:var(--skyDeep);}
+  .scheme-badge.state{background:#FFF3D6;color:var(--accentDeep);}
+  .scheme-desc{font-size:13px;color:var(--textDark);line-height:1.5;margin-bottom:8px;}
+  .scheme-meta{font-size:12px;color:var(--textMuted);display:flex;flex-direction:column;gap:3px;}
+  .scheme-meta b{color:var(--textDark);}
+  .section-label{font-size:12.5px;font-weight:800;color:var(--primary);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 10px;}
+  .footnote{font-size:11.5px;color:var(--textMuted);margin-top:18px;line-height:1.5;}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <button class="back-btn" onclick="history.back()">←</button>
+    <div class="topbar-title">Govt Schemes</div>
+  </div>
+  <div class="inner">
+    <div class="intro">Explore central and Andhra Pradesh state government schemes, subsidies, and incentives for solar and wind energy adoption.</div>
+
+    <div class="section-label">Central Govt Schemes</div>
+
+    <div class="scheme-card central">
+      <span class="scheme-badge central">Central</span>
+      <div class="scheme-title">PM Surya Ghar: Muft Bijli Yojana</div>
+      <div class="scheme-desc">Rooftop solar subsidy scheme offering up to 300 units of free electricity per month for households that install rooftop solar systems.</div>
+      <div class="scheme-meta">
+        <span><b>Subsidy:</b> Up to ₹78,000 depending on system size</span>
+        <span><b>Eligible:</b> Residential rooftop solar (1-3 kW+)</span>
+      </div>
+    </div>
+
+    <div class="scheme-card central">
+      <span class="scheme-badge central">Central</span>
+      <div class="scheme-title">PM-KUSUM Yojana</div>
+      <div class="scheme-desc">Supports farmers with solar pumps and solar power plants on barren land, reducing diesel dependency for irrigation.</div>
+      <div class="scheme-meta">
+        <span><b>Subsidy:</b> 60% central+state subsidy, 30% loan, 10% farmer share</span>
+        <span><b>Eligible:</b> Farmers, cooperatives, panchayats</span>
+      </div>
+    </div>
+
+    <div class="section-label">Andhra Pradesh State Schemes</div>
+
+    <div class="scheme-card state">
+      <span class="scheme-badge state">AP State</span>
+      <div class="scheme-title">AP Solar Rooftop Subsidy Program</div>
+      <div class="scheme-desc">State-level top-up incentives for residential and MSME rooftop solar installations, aligned with the central PM Surya Ghar scheme.</div>
+      <div class="scheme-meta">
+        <span><b>Subsidy:</b> Varies by discom (APSPDCL / APEPDCL)</span>
+        <span><b>Eligible:</b> AP residents and small businesses</span>
+      </div>
+    </div>
+
+    <div class="scheme-card state">
+      <span class="scheme-badge state">AP State</span>
+      <div class="scheme-title">AP Wind & Solar Hybrid Policy</div>
+      <div class="scheme-desc">Encourages hybrid wind-solar power projects in AP with land allotment support and simplified clearances for developers.</div>
+      <div class="scheme-meta">
+        <span><b>Benefit:</b> Land/grid connectivity support, tax incentives</span>
+        <span><b>Eligible:</b> Commercial/industrial renewable developers</span>
+      </div>
+    </div>
+
+    <div class="footnote">Scheme details, subsidy amounts, and eligibility change frequently. Always confirm current terms on the official <b>PM Surya Ghar</b> portal or your local AP DISCOM office before applying.</div>
+  </div>
+</body>
+</html>
