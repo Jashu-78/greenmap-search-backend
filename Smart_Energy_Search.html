@@ -64,6 +64,8 @@
   .results-top{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px;margin-bottom:6px;}
   .results-title{font-size:24px;font-weight:700;margin:0;color:var(--primary);}
   .results-count{font-size:12.5px;color:var(--textMuted);margin-top:2px;}
+  .history-chip-ses{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--textDark);}
+  .history-chip-ses svg{flex-shrink:0;opacity:.6;}
   .sort-wrap{display:flex;align-items:center;gap:8px;}
   .icon-btn{flex-shrink:0;width:38px;height:38px;border-radius:8px;border:none;background:var(--primaryDeep);display:flex;align-items:center;justify-content:center;cursor:pointer;}
   .sheet-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:49;}
@@ -270,6 +272,13 @@
           <option value="rating">User Rating</option>
         </select>
       </div>
+    </div>
+    <div id="searchHistoryBoxSES" style="display:none;margin:0 0 14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-size:12.5px;font-weight:800;color:var(--primary2);text-transform:uppercase;letter-spacing:.04em;">Recent Searches</div>
+        <button id="clearHistoryBtnSES" style="background:none;border:none;color:var(--accentDeep);font-weight:700;font-size:11.5px;cursor:pointer;">Clear</button>
+      </div>
+      <div id="searchHistoryChipsSES" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
     </div>
     <div class="web-search-row">
       <a id="webSearchBtn" class="web-search-link" href="#" target="_blank" rel="noopener">
@@ -588,6 +597,58 @@ function cartControlHtml(p){
   return '<button class="btn-add-cart" data-action="add-to-cart" data-value="'+p.id+'">+ Add to Cart</button>';
 }
 
+var SES_SEARCH_HISTORY_KEY = "smartEnergySearch_searchHistory";
+
+function sesGetSearchHistory(){
+  try{
+    var raw = localStorage.getItem(SES_SEARCH_HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+
+function sesSaveSearchTerm(term){
+  term = term.trim();
+  if (!term) return;
+  try{
+    var hist = sesGetSearchHistory();
+    hist = hist.filter(function(t){ return t.toLowerCase() !== term.toLowerCase(); });
+    hist.unshift(term);
+    if (hist.length > 8) hist = hist.slice(0, 8);
+    localStorage.setItem(SES_SEARCH_HISTORY_KEY, JSON.stringify(hist));
+  }catch(e){}
+}
+
+function sesClearSearchHistory(){
+  try{ localStorage.removeItem(SES_SEARCH_HISTORY_KEY); }catch(e){}
+  sesRenderSearchHistory();
+}
+
+function sesRenderSearchHistory(){
+  var box = document.getElementById("searchHistoryBoxSES");
+  var chipsEl = document.getElementById("searchHistoryChipsSES");
+  if (!box || !chipsEl) return;
+  var hist = sesGetSearchHistory();
+  var showHistory = !state.query.trim() && hist.length > 0;
+  if (!showHistory){
+    box.style.display = "none";
+    return;
+  }
+  box.style.display = "block";
+  chipsEl.innerHTML = hist.map(function(term){
+    return '<div class="history-chip-ses" data-term="' + term.replace(/"/g, "&quot;") + '">' +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>' +
+      term + '</div>';
+  }).join("");
+  Array.prototype.forEach.call(chipsEl.querySelectorAll(".history-chip-ses"), function(chip){
+    chip.addEventListener("click", function(){
+      var term = chip.getAttribute("data-term");
+      document.getElementById("searchInput").value = term;
+      state.query = term;
+      renderResults();
+    });
+  });
+}
+
 function renderResults(){
   var list = getFiltered();
   document.getElementById("resultsCount").textContent = list.length + " products found";
@@ -595,6 +656,7 @@ function renderResults(){
   if (sel.value !== state.sort) sel.value = state.sort;
   renderTypeToggles();
   updateWebSearchLink();
+  sesRenderSearchHistory();
 
   if (list.length === 0){
     document.getElementById("resultsList").innerHTML =
@@ -1029,10 +1091,21 @@ document.getElementById("searchInput").addEventListener("keydown", function(e){
   if (e.key === "Enter"){
     e.preventDefault();
     state.query = this.value;
+    if (this.value.trim()){ sesSaveSearchTerm(this.value); }
     renderResults();
     this.blur(); // closes the on-screen keyboard on mobile
   }
 });
+
+document.getElementById("searchInput").addEventListener("blur", function(e){
+  if (e.target.value.trim()){
+    sesSaveSearchTerm(e.target.value);
+    sesRenderSearchHistory();
+  }
+});
+
+var clearHistoryBtnSESEl = document.getElementById("clearHistoryBtnSES");
+if (clearHistoryBtnSESEl) clearHistoryBtnSESEl.addEventListener("click", sesClearSearchHistory);
 
 document.getElementById("liveSearchBtn").addEventListener("click", function(){
   var q = this.getAttribute("data-query");
