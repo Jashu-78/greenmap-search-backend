@@ -79,6 +79,23 @@
   .notify-btn svg{flex-shrink:0;}
   .notify-btn.subscribed{background:var(--accent);border-color:var(--accent);color:#3D2B00;}
   .notify-hero-row{display:flex;gap:10px;align-items:center;}
+  .bell-btn{width:32px;height:32px;border-radius:9px;background:var(--primaryDeep);display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;cursor:pointer;}
+  .bell-dot{display:none;position:absolute;top:5px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--accent);border:1.5px solid var(--primary);}
+  .bell-dot.show{display:block;}
+  .notif-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:70;}
+  .notif-overlay.open{display:block;}
+  .notif-panel{display:none;position:fixed;right:0;top:0;bottom:0;width:86%;max-width:360px;background:var(--bg);z-index:71;box-shadow:-8px 0 30px rgba(0,0,0,.25);flex-direction:column;}
+  .notif-panel.open{display:flex;}
+  .notif-header{background:var(--primary);color:#fff;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:15px;}
+  .notif-close{width:28px;height:28px;border-radius:50%;background:var(--primaryDeep);border:none;color:#fff;cursor:pointer;}
+  .notif-items{flex:1;overflow-y:auto;padding:14px;}
+  .notif-empty{text-align:center;color:var(--textMuted);font-size:13px;padding:30px 10px;}
+  .notif-item{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;}
+  .notif-item-title{font-weight:700;font-size:13px;color:var(--primaryDeep);margin-bottom:3px;}
+  .notif-item-body{font-size:12px;color:var(--textDark);line-height:1.4;}
+  .notif-item-time{font-size:10.5px;color:var(--textMuted);margin-top:5px;}
+  .notif-clear-row{padding:12px 14px;border-top:1px solid var(--line);}
+  .notif-clear-row button{width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--accentDeep);font-weight:700;font-size:13px;cursor:pointer;}
   .box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:14px;}
   .box-title{font-weight:800;font-size:13.5px;color:var(--primaryDeep);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
   .box p{font-size:13px;line-height:1.55;color:var(--textDark);}
@@ -102,9 +119,13 @@
     <div class="logo-row">
       <button class="back-btn" onclick="location.href='GreenMap_App.html'">←</button>
       <div class="logo-icon-slot">⌂</div>
-      <div class="logo-text-wrap">
+      <div class="logo-text-wrap" style="flex:1;">
         <div class="logo-text serif">Govt Schemes</div>
         <div class="logo-sub">SOLAR &amp; WIND INCENTIVES</div>
+      </div>
+      <div class="bell-btn" id="bellBtn" onclick="toggleNotifPanel(true)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="bell-dot" id="bellBadge"></span>
       </div>
     </div>
     <div class="search-row">
@@ -116,6 +137,20 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       </button>
     </div>
+  </div>
+</div>
+
+<div class="notif-overlay" id="notifOverlay" onclick="toggleNotifPanel(false)"></div>
+<div class="notif-panel" id="notifPanel">
+  <div class="notif-header">
+    <span>Notifications</span>
+    <button class="notif-close" onclick="toggleNotifPanel(false)">✕</button>
+  </div>
+  <div class="notif-items" id="notifItemsList">
+    <div class="notif-empty">No notifications yet.</div>
+  </div>
+  <div class="notif-clear-row" id="notifClearRow" style="display:none;">
+    <button type="button" id="notifClearBtn">Clear all</button>
   </div>
 </div>
 
@@ -151,15 +186,13 @@
     </div>
     <button class="detail-close" id="detailCloseBtn">✕</button>
   </div>
-  <div class="detail-inner">
+  <div class="detail-inner" style="position:relative;">
+    <button class="notify-btn" id="detailNotifyBtn" style="position:absolute;top:16px;right:16px;z-index:2;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span id="detailNotifyBtnLabel">Notify Me</span>
+    </button>
     <div class="detail-hero" style="flex-direction:column;align-items:center;text-align:center;gap:10px;">
-      <div class="notify-hero-row">
-        <div class="detail-thumb" id="detailThumb" style="width:88px;height:88px;"></div>
-        <button class="notify-btn" id="detailNotifyBtn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <span id="detailNotifyBtnLabel">Notify Me</span>
-        </button>
-      </div>
+      <div class="detail-thumb" id="detailThumb" style="width:88px;height:88px;"></div>
       <div class="detail-price-badge" id="detailBenefitBadge">Subsidy</div>
     </div>
 
@@ -454,7 +487,97 @@ function requestNotifyPermission(callback){
   });
 }
 
+var NOTIF_LOG_KEY = "govtSchemes_notifLog";
+var GM_NOTIF_SEEN_KEY = "gm_notif_last_seen";
+var GM_NOTIF_CLEARED_KEY = "gm_notif_cleared_before";
+
+function getNotifLog(){
+  try{
+    var raw = localStorage.getItem(NOTIF_LOG_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+
+function addToNotifLog(title, body){
+  var log = getNotifLog();
+  log.unshift({ title: title, body: body, time: new Date().toISOString() });
+  if (log.length > 30) log = log.slice(0, 30);
+  try{ localStorage.setItem(NOTIF_LOG_KEY, JSON.stringify(log)); }catch(e){}
+  updateBellBadge();
+}
+
+function gmGetClearedBefore(){
+  try{ var raw = localStorage.getItem(GM_NOTIF_CLEARED_KEY); return raw ? parseInt(raw, 10) : 0; }catch(e){ return 0; }
+}
+function gmGetLastSeen(){
+  try{ var raw = localStorage.getItem(GM_NOTIF_SEEN_KEY); return raw ? parseInt(raw, 10) : 0; }catch(e){ return 0; }
+}
+
+// Visible log = this page's local scheme alerts, filtered by whatever was
+// cleared from either page (this bell shares state with the home page bell,
+// since both read/write the same "gm_notif_..." localStorage keys).
+function getVisibleNotifLog(){
+  var clearedBefore = gmGetClearedBefore();
+  return getNotifLog().filter(function(n){
+    var t = new Date(n.time).getTime();
+    return !clearedBefore || t > clearedBefore;
+  });
+}
+
+function updateBellBadge(){
+  var badge = document.getElementById("bellBadge");
+  if (!badge) return;
+  var lastSeen = gmGetLastSeen();
+  var hasUnread = getVisibleNotifLog().some(function(n){ return new Date(n.time).getTime() > lastSeen; });
+  badge.classList.toggle("show", hasUnread);
+}
+
+function formatNotifTime(iso){
+  try{
+    var d = new Date(iso);
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " · " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  }catch(e){ return ""; }
+}
+
+function renderNotifPanel(){
+  var listEl = document.getElementById("notifItemsList");
+  var clearRow = document.getElementById("notifClearRow");
+  var log = getVisibleNotifLog();
+  if (log.length === 0){
+    listEl.innerHTML = '<div class="notif-empty">No notifications yet. Tap "Notify Me" on any scheme to get updates here.</div>';
+    clearRow.style.display = "none";
+    return;
+  }
+  clearRow.style.display = "block";
+  listEl.innerHTML = log.map(function(n){
+    return '<div class="notif-item">' +
+      '<div class="notif-item-title">' + n.title + '</div>' +
+      '<div class="notif-item-body">' + n.body + '</div>' +
+      '<div class="notif-item-time">' + formatNotifTime(n.time) + '</div>' +
+    '</div>';
+  }).join("");
+}
+
+function toggleNotifPanel(open){
+  document.getElementById("notifOverlay").classList.toggle("open", open);
+  document.getElementById("notifPanel").classList.toggle("open", open);
+  if (open){
+    renderNotifPanel();
+    // Shared with the home page bell — opening either one marks both as seen.
+    try{ localStorage.setItem(GM_NOTIF_SEEN_KEY, String(Date.now())); }catch(e){}
+    updateBellBadge();
+  }
+}
+
+document.getElementById("notifClearBtn") && document.getElementById("notifClearBtn").addEventListener("click", function(){
+  // Shared with the home page bell — clearing on either page clears both.
+  try{ localStorage.setItem(GM_NOTIF_CLEARED_KEY, String(Date.now())); }catch(e){}
+  renderNotifPanel();
+  updateBellBadge();
+});
+
 function fireLocalNotification(title, body){
+  addToNotifLog(title, body);
   if (!("Notification" in window) || Notification.permission !== "granted") return;
   try{ new Notification(title, { body: body, icon: undefined }); }catch(e){}
 }
@@ -753,6 +876,7 @@ document.getElementById("schemeRefreshBtn").addEventListener("click", function()
 });
 
 checkForUpdatesAndNotify();
+updateBellBadge();
 renderList();
 </script>
 </body>
