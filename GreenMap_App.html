@@ -721,6 +721,29 @@ window.toggleLogin = async function(){
 // ---------------------------------------------------------------------------
 var NOTIF_SEEN_KEY = "gm_notif_last_seen";
 var NOTIF_CLEARED_KEY = "gm_notif_cleared_before";
+var GOVT_SCHEMES_NOTIF_KEY = "govtSchemes_notifLog";
+
+// Govt Schemes is a lightweight static page with no Firebase login, so it
+// keeps its own local notification log (scheme updates, new schemes) in
+// localStorage. Since localStorage is shared across pages on this same
+// site, we read that log here too and merge it into the home bell so both
+// pages show one combined inbox.
+function getGovtSchemesLocalNotifs(){
+  try{
+    var raw = localStorage.getItem(GOVT_SCHEMES_NOTIF_KEY);
+    var log = raw ? JSON.parse(raw) : [];
+    return log.map(function(n){
+      return {
+        id: "govtschemes_" + n.time,
+        type: "update",
+        title: n.title,
+        message: n.body,
+        link: "Govt_Schemes.html",
+        time: new Date(n.time).getTime()
+      };
+    });
+  }catch(e){ return []; }
+}
 
 function getLastSeenTime(){
   var raw = localStorage.getItem(NOTIF_SEEN_KEY);
@@ -767,6 +790,15 @@ async function fetchNotifications(){
       time: time
     });
   });
+
+  // Merge in Govt Schemes' local notification log (scheme updates, new
+  // schemes) so this bell is a single combined inbox for the whole app.
+  var localItems = getGovtSchemesLocalNotifs().filter(function(n){
+    return !n.time || n.time > clearedBefore;
+  });
+  items = items.concat(localItems);
+  items.sort(function(a, b){ return b.time - a.time; });
+
   return items;
 }
 
