@@ -75,6 +75,10 @@
   .detail-thumb{width:74px;height:74px;border-radius:14px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:32px;overflow:hidden;flex-shrink:0;}
   .detail-thumb img{width:100%;height:100%;object-fit:contain;padding:10px;}
   .detail-price-badge{display:inline-flex;align-items:center;gap:5px;background:var(--primary2);color:#fff;font-weight:700;font-size:12.5px;padding:5px 12px;border-radius:999px;}
+  .notify-btn{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--line);color:var(--textDark);font-weight:700;font-size:12px;padding:6px 13px;border-radius:999px;cursor:pointer;}
+  .notify-btn svg{flex-shrink:0;}
+  .notify-btn.subscribed{background:var(--accent);border-color:var(--accent);color:#3D2B00;}
+  .notify-hero-row{display:flex;gap:10px;align-items:center;}
   .box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:14px;}
   .box-title{font-weight:800;font-size:13.5px;color:var(--primaryDeep);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
   .box p{font-size:13px;line-height:1.55;color:var(--textDark);}
@@ -149,7 +153,13 @@
   </div>
   <div class="detail-inner">
     <div class="detail-hero" style="flex-direction:column;align-items:center;text-align:center;gap:10px;">
-      <div class="detail-thumb" id="detailThumb" style="width:88px;height:88px;"></div>
+      <div class="notify-hero-row">
+        <div class="detail-thumb" id="detailThumb" style="width:88px;height:88px;"></div>
+        <button class="notify-btn" id="detailNotifyBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span id="detailNotifyBtnLabel">Notify Me</span>
+        </button>
+      </div>
       <div class="detail-price-badge" id="detailBenefitBadge">Subsidy</div>
     </div>
 
@@ -391,6 +401,129 @@ var SCHEMES = [
 ];
 
 var activeCat = "all";
+
+// ---------------------------------------------------------------------------
+// Notifications — "Notify Me" for coming-soon schemes and per-scheme updates.
+// This is a static site with no server, so this can't push notifications
+// while the app is closed. Instead: subscriptions are stored locally, and
+// whenever the app is reopened, it compares the current scheme list/data
+// against what was last seen and fires a browser notification for anything
+// new or changed that the person subscribed to.
+// ---------------------------------------------------------------------------
+var NOTIFY_COMING_SOON_KEY = "govtSchemes_notifyComingSoon";
+var NOTIFY_SCHEME_KEY = "govtSchemes_notifySchemes";
+var SEEN_IDS_KEY = "govtSchemes_seenSchemeIds";
+var SEEN_HASH_PREFIX = "govtSchemes_hash_";
+
+function simpleHash(str){
+  var hash = 0;
+  for (var i = 0; i < str.length; i++){
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return String(hash);
+}
+
+function isComingSoonSubscribed(){
+  try{ return localStorage.getItem(NOTIFY_COMING_SOON_KEY) === "1"; }catch(e){ return false; }
+}
+
+function getSchemeSubscriptions(){
+  try{
+    var raw = localStorage.getItem(NOTIFY_SCHEME_KEY);
+    return raw ? JSON.parse(raw) : {};
+  }catch(e){ return {}; }
+}
+
+function isSchemeSubscribed(id){
+  return !!getSchemeSubscriptions()[id];
+}
+
+function setSchemeSubscribed(id, on){
+  var subs = getSchemeSubscriptions();
+  if (on) subs[id] = true; else delete subs[id];
+  try{ localStorage.setItem(NOTIFY_SCHEME_KEY, JSON.stringify(subs)); }catch(e){}
+}
+
+function requestNotifyPermission(callback){
+  if (!("Notification" in window)){ callback(false); return; }
+  if (Notification.permission === "granted"){ callback(true); return; }
+  if (Notification.permission === "denied"){ callback(false); return; }
+  Notification.requestPermission().then(function(perm){
+    callback(perm === "granted");
+  });
+}
+
+function fireLocalNotification(title, body){
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  try{ new Notification(title, { body: body, icon: undefined }); }catch(e){}
+}
+
+function toggleComingSoonNotify(){
+  var on = !isComingSoonSubscribed();
+  if (on){
+    requestNotifyPermission(function(granted){
+      try{ localStorage.setItem(NOTIFY_COMING_SOON_KEY, "1"); }catch(e){}
+      renderList();
+      if (granted) fireLocalNotification("GreenMap AI", "You'll be notified here when new schemes are added.");
+    });
+  } else {
+    try{ localStorage.setItem(NOTIFY_COMING_SOON_KEY, "0"); }catch(e){}
+    renderList();
+  }
+}
+
+function toggleSchemeNotify(id){
+  var on = !isSchemeSubscribed(id);
+  if (on){
+    requestNotifyPermission(function(granted){
+      setSchemeSubscribed(id, true);
+      updateDetailNotifyBtn(id);
+      if (granted) fireLocalNotification("GreenMap AI", "You'll be notified here if this scheme's registration or details change.");
+    });
+  } else {
+    setSchemeSubscribed(id, false);
+    updateDetailNotifyBtn(id);
+  }
+}
+
+function updateDetailNotifyBtn(id){
+  var btn = document.getElementById("detailNotifyBtn");
+  var label = document.getElementById("detailNotifyBtnLabel");
+  if (!btn || !label) return;
+  var on = isSchemeSubscribed(id);
+  btn.classList.toggle("subscribed", on);
+  label.textContent = on ? "Notified" : "Notify Me";
+}
+
+// Compares current SCHEMES data against what was stored on the last visit.
+// Fires a notification for brand-new schemes (if subscribed to coming-soon
+// alerts) and for changed details on schemes the person subscribed to.
+function checkForUpdatesAndNotify(){
+  var seenIds = [];
+  try{ seenIds = JSON.parse(localStorage.getItem(SEEN_IDS_KEY) || "[]"); }catch(e){}
+  var currentIds = SCHEMES.map(function(s){ return s.id; });
+  var newIds = currentIds.filter(function(id){ return seenIds.indexOf(id) === -1; });
+
+  if (seenIds.length > 0 && newIds.length > 0 && isComingSoonSubscribed()){
+    var names = SCHEMES.filter(function(s){ return newIds.indexOf(s.id) !== -1; }).map(function(s){ return s.title; });
+    fireLocalNotification("New scheme available", names.join(", "));
+  }
+
+  var subs = getSchemeSubscriptions();
+  SCHEMES.forEach(function(s){
+    var hashKey = SEEN_HASH_PREFIX + s.id;
+    var newHash = simpleHash(JSON.stringify([s.regDate, s.expiryDate, s.benefitsFromGovt, s.benefit]));
+    var oldHash = null;
+    try{ oldHash = localStorage.getItem(hashKey); }catch(e){}
+    if (oldHash !== null && oldHash !== newHash && subs[s.id]){
+      fireLocalNotification("Scheme updated", s.title + " has new registration or benefit details.");
+    }
+    try{ localStorage.setItem(hashKey, newHash); }catch(e){}
+  });
+
+  try{ localStorage.setItem(SEEN_IDS_KEY, JSON.stringify(currentIds)); }catch(e){}
+}
 var searchQuery = "";
 var SEARCH_HISTORY_KEY = "govtSchemes_searchHistory";
 
@@ -504,7 +637,14 @@ function renderList(){
   }).join("");
 
   if (activeCat === "all" && !searchQuery.trim()){
-    listEl.innerHTML += '<div style="text-align:center;padding:16px;color:var(--textMuted);font-size:12.5px;border:1.5px dashed var(--line);border-radius:14px;">More state schemes and sectors are being added — check back soon.</div>';
+    var comingSoonOn = isComingSoonSubscribed();
+    listEl.innerHTML += '<div style="text-align:center;padding:16px;color:var(--textMuted);font-size:12.5px;border:1.5px dashed var(--line);border-radius:14px;">' +
+      'More state schemes and sectors are being added — check back soon.<br/>' +
+      '<button id="comingSoonNotifyBtn" class="notify-btn' + (comingSoonOn ? ' subscribed' : '') + '" style="margin-top:10px;">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' +
+        '<span>' + (comingSoonOn ? "Notified" : "Get Notified") + '</span>' +
+      '</button>' +
+    '</div>';
   }
 
   Array.prototype.forEach.call(listEl.querySelectorAll(".scheme-card"), function(card){
@@ -512,6 +652,14 @@ function renderList(){
       openDetail(card.getAttribute("data-id"));
     });
   });
+
+  var comingSoonBtn = document.getElementById("comingSoonNotifyBtn");
+  if (comingSoonBtn){
+    comingSoonBtn.addEventListener("click", function(e){
+      e.stopPropagation();
+      toggleComingSoonNotify();
+    });
+  }
 }
 
 function openDetail(id){
@@ -542,6 +690,10 @@ function openDetail(id){
   link.href = s.source;
   link.textContent = s.source;
   document.getElementById("detailTrustPct").textContent = s.trust + "%";
+
+  updateDetailNotifyBtn(s.id);
+  var notifyBtn = document.getElementById("detailNotifyBtn");
+  notifyBtn.onclick = function(){ toggleSchemeNotify(s.id); };
 
   document.getElementById("overlayBackdrop").classList.add("open");
   document.getElementById("detailSheet").classList.add("open");
@@ -600,6 +752,7 @@ document.getElementById("schemeRefreshBtn").addEventListener("click", function()
   renderList();
 });
 
+checkForUpdatesAndNotify();
 renderList();
 </script>
 </body>
