@@ -35,8 +35,14 @@
   .icon-btn svg{transition:transform .5s;}
 
   .cat-row{display:flex;gap:8px;overflow-x:auto;padding:10px 16px;background:var(--card);}
-  .cat-pill{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;border:1.5px solid var(--line);background:#fff;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
-  .cat-pill.active{background:var(--primary2);color:#fff;border-color:var(--primary2);}
+  .cat-pill{flex-shrink:0;display:flex;align-items:center;gap:7px;padding:6px 12px 6px 10px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;color:var(--textDark);transition:background .15s ease, border-color .15s ease;}
+  .cat-pill svg{stroke:var(--textDark);transition:stroke .15s ease;flex-shrink:0;}
+  .cat-pill .switch{width:28px;height:16px;border-radius:999px;background:#D8E3DB;position:relative;flex-shrink:0;transition:background .15s ease;}
+  .cat-pill .switch .knob{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:left .15s ease;}
+  .cat-pill.active{background:#39A845;border-color:#39A845;color:#fff;}
+  .cat-pill.active svg{stroke:#fff;}
+  .cat-pill.active .switch{background:rgba(255,255,255,.9);}
+  .cat-pill.active .switch .knob{left:14px;background:#1B4332;}
 
   .inner{max-width:640px;margin:0 auto;padding:16px;}
   .result-count{font-size:12.5px;color:var(--textMuted);margin-bottom:12px;}
@@ -110,12 +116,12 @@
 </div>
 
 <div class="cat-row" id="catRow">
-  <div class="cat-pill active" data-cat="all">All</div>
-  <div class="cat-pill" data-cat="central">Central</div>
-  <div class="cat-pill" data-cat="state">AP State</div>
-  <div class="cat-pill" data-cat="solar">Solar</div>
-  <div class="cat-pill" data-cat="wind">Wind</div>
-  <div class="cat-pill" data-cat="farmer">Farmer</div>
+  <div class="cat-pill active" data-cat="all"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>All</span><span class="switch"><span class="knob"></span></span></div>
+  <div class="cat-pill" data-cat="central"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="21" x2="21" y2="21"/><line x1="5" y1="21" x2="5" y2="10"/><line x1="19" y1="21" x2="19" y2="10"/><polygon points="12 3 21 9 3 9"/><line x1="9" y1="21" x2="9" y2="10"/><line x1="15" y1="21" x2="15" y2="10"/></svg><span>Central</span><span class="switch"><span class="knob"></span></span></div>
+  <div class="cat-pill" data-cat="state"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span>AP State</span><span class="switch"><span class="knob"></span></span></div>
+  <div class="cat-pill" data-cat="solar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><span>Solar</span><span class="switch"><span class="knob"></span></span></div>
+  <div class="cat-pill" data-cat="wind"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2"/><path d="M12.59 19.41A2 2 0 1 0 14 16H2"/><path d="M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/></svg><span>Wind</span><span class="switch"><span class="knob"></span></span></div>
+  <div class="cat-pill" data-cat="farmer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M3 9h6l2 4h4V6h-3"/><path d="M3 9v5h1"/></svg><span>Farmer</span><span class="switch"><span class="knob"></span></span></div>
 </div>
 
 <div class="inner">
@@ -187,7 +193,7 @@ var SCHEMES = [
     title: "PM Surya Ghar: Muft Bijli Yojana",
     org: "Ministry of New & Renewable Energy (MNRE)",
     cat: ["central","solar"],
-    icon: "☀",
+    iconName: "sun",
     domain: "mnre.gov.in",
     benefit: "Up to ₹78,000 subsidy",
     desc: "A central government scheme that helps households install rooftop solar panels and get free electricity. It offers a direct subsidy paid into the homeowner's bank account after installation and DISCOM inspection, aiming to cover up to 300 units of free power per month for typical households.",
@@ -208,7 +214,7 @@ var SCHEMES = [
     title: "PM-KUSUM Yojana",
     org: "Ministry of New & Renewable Energy (MNRE)",
     cat: ["central","solar","farmer"],
-    icon: "⚙",
+    iconName: "tractor",
     domain: "mnre.gov.in",
     benefit: "Up to 60% subsidy",
     desc: "Pradhan Mantri Kisan Urja Suraksha evam Utthaan Mahabhiyan supports farmers in setting up solar power plants, standalone solar irrigation pumps, and solarizing existing grid-connected pumps — cutting diesel costs and even letting farmers sell surplus power back to DISCOMs.",
@@ -229,7 +235,7 @@ var SCHEMES = [
     title: "AP Rooftop Solar (via NREDCAP)",
     org: "New & Renewable Energy Development Corporation of AP (NREDCAP)",
     cat: ["state","solar"],
-    icon: "⌂",
+    iconName: "home",
     domain: "nredcap.in",
     benefit: "State facilitation + central subsidy",
     desc: "NREDCAP is the Andhra Pradesh state nodal agency that coordinates rooftop solar rollout with APEPDCL and APSPDCL DISCOMs. It maintains the state's empanelled vendor list and helps residents access the central PM Surya Ghar subsidy through local processing.",
@@ -250,7 +256,7 @@ var SCHEMES = [
     title: "AP Free Rooftop Solar for SC/ST Households",
     org: "Government of Andhra Pradesh + NREDCAP",
     cat: ["state","solar"],
-    icon: "◈",
+    iconName: "users",
     domain: "ap.gov.in",
     benefit: "Free 2kWp system",
     desc: "A state welfare initiative providing free 2 kilowatt-peak rooftop solar systems — including installation and five years of maintenance — to SC/ST households as part of Andhra Pradesh's push toward wider rooftop solar coverage.",
@@ -271,7 +277,7 @@ var SCHEMES = [
     title: "AP Solar Power Policy",
     org: "Government of Andhra Pradesh (NREDCAP nodal agency)",
     cat: ["state","solar","wind"],
-    icon: "▤",
+    iconName: "document",
     domain: "nredcap.in",
     benefit: "Fee waivers & incentives",
     desc: "The state's core policy framework for utility-scale and commercial solar power projects in AP — covering land allotment support, exemptions from certain supervision charges, and simplified clearances for developers setting up large solar installations.",
@@ -292,7 +298,7 @@ var SCHEMES = [
     title: "National Wind-Solar Hybrid Policy",
     org: "Ministry of New & Renewable Energy (MNRE)",
     cat: ["central","solar","wind"],
-    icon: "≋",
+    iconName: "hybrid",
     domain: "mnre.gov.in",
     benefit: "Grid support & incentives",
     desc: "A central policy promoting large-scale grid-connected wind-solar hybrid systems to optimize transmission infrastructure and land use, improve grid stability, and reduce variability of renewable power output by combining wind and solar generation at the same site.",
@@ -378,12 +384,25 @@ function getFiltered(){
   });
 }
 
-var PAGE_SIZE = 4;
-var visibleCount = PAGE_SIZE;
+function schemeIcon(name, size, color){
+  size = size || 20; color = color || "currentColor";
+  var a = 'width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+  switch(name){
+    case "sun": return '<svg '+a+'><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+    case "wind": return '<svg '+a+'><path d="M9.59 4.59A2 2 0 1 1 11 8H2"/><path d="M12.59 19.41A2 2 0 1 0 14 16H2"/><path d="M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/></svg>';
+    case "tractor": return '<svg '+a+'><circle cx="7" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M3 9h6l2 4h4V6h-3"/><path d="M3 9v5h1"/></svg>';
+    case "home": return '<svg '+a+'><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>';
+    case "users": return '<svg '+a+'><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+    case "document": return '<svg '+a+'><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>';
+    case "hybrid": return '<svg '+a+'><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>';
+    case "bank": return '<svg '+a+'><line x1="3" y1="21" x2="21" y2="21"/><line x1="5" y1="21" x2="5" y2="10"/><line x1="19" y1="21" x2="19" y2="10"/><polygon points="12 3 21 9 3 9"/><line x1="9" y1="21" x2="9" y2="10"/><line x1="15" y1="21" x2="15" y2="10"/></svg>';
+    default: return '';
+  }
+}
 
 function renderList(){
   var full = getFiltered();
-  var list = full.slice(0, visibleCount);
+  var list = full;
   var listEl = document.getElementById("schemeList");
   var countEl = document.getElementById("resultCount");
   var emptyEl = document.getElementById("emptyState");
@@ -398,8 +417,9 @@ function renderList(){
   listEl.innerHTML = list.map(function(s){
     var badgeClass = s.cat.indexOf("central") !== -1 ? "central" : "state";
     var badgeText = s.cat.indexOf("central") !== -1 ? "Central" : "AP State";
+    var fallbackIcon = schemeIcon(s.iconName, 24, "#2D6A4F").replace(/"/g, "&quot;");
     return '<div class="scheme-card" data-id="' + s.id + '">' +
-      '<div class="scheme-thumb"><img src="' + faviconUrl(s.domain) + '" alt="" onerror="this.style.display=\'none\';this.parentNode.textContent=\'' + s.icon + '\';" /></div>' +
+      '<div class="scheme-thumb" data-fallback="' + fallbackIcon + '"><img src="' + faviconUrl(s.domain) + '" alt="" onerror="this.style.display=\'none\';this.parentNode.innerHTML=this.parentNode.getAttribute(\'data-fallback\');" /></div>' +
       '<div class="scheme-body">' +
         '<span class="scheme-badge ' + badgeClass + '">' + badgeText + '</span>' +
         '<div class="scheme-title">' + s.title + '</div>' +
@@ -410,23 +430,11 @@ function renderList(){
     '</div>';
   }).join("");
 
-  if (full.length > visibleCount){
-    listEl.innerHTML += '<button id="showMoreBtn" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--line);background:#fff;color:var(--primary2);font-weight:700;font-size:13.5px;cursor:pointer;margin-top:4px;">Show More</button>';
-  }
-
   Array.prototype.forEach.call(listEl.querySelectorAll(".scheme-card"), function(card){
     card.addEventListener("click", function(){
       openDetail(card.getAttribute("data-id"));
     });
   });
-
-  var showMoreBtn = document.getElementById("showMoreBtn");
-  if (showMoreBtn){
-    showMoreBtn.addEventListener("click", function(){
-      visibleCount += PAGE_SIZE;
-      renderList();
-    });
-  }
 }
 
 function openDetail(id){
@@ -435,7 +443,8 @@ function openDetail(id){
   var isCentral = s.cat.indexOf("central") !== -1;
   document.getElementById("detailBadgeText").textContent = isCentral ? "CENTRAL SCHEME" : "AP STATE SCHEME";
   document.getElementById("detailTitle").textContent = s.title;
-  document.getElementById("detailThumb").innerHTML = '<img src="' + faviconUrl(s.domain) + '" alt="" onerror="this.style.display=\'none\';this.parentNode.textContent=\'' + s.icon + '\';" />';
+  document.getElementById("detailThumb").setAttribute("data-fallback", schemeIcon(s.iconName, 32, "#2D6A4F").replace(/"/g, "&quot;"));
+  document.getElementById("detailThumb").innerHTML = '<img src="' + faviconUrl(s.domain) + '" alt="" onerror="this.style.display=\'none\';this.parentNode.innerHTML=this.parentNode.getAttribute(\'data-fallback\');" />';
   document.getElementById("detailBenefitBadge").textContent = s.benefit;
   document.getElementById("detailDesc").textContent = s.desc;
   document.getElementById("detailSpecs").innerHTML = s.specs.map(function(row){
@@ -466,14 +475,12 @@ Array.prototype.forEach.call(document.querySelectorAll(".cat-pill"), function(pi
     Array.prototype.forEach.call(document.querySelectorAll(".cat-pill"), function(p){ p.classList.remove("active"); });
     pill.classList.add("active");
     activeCat = pill.getAttribute("data-cat");
-    visibleCount = PAGE_SIZE;
     renderList();
   });
 });
 
 document.getElementById("schemeSearchInput").addEventListener("input", function(e){
   searchQuery = e.target.value;
-  visibleCount = PAGE_SIZE;
   renderList();
 });
 
@@ -499,7 +506,6 @@ document.getElementById("schemeRefreshBtn").addEventListener("click", function()
   document.getElementById("schemeSearchInput").value = "";
   searchQuery = "";
   activeCat = "all";
-  visibleCount = PAGE_SIZE;
   Array.prototype.forEach.call(document.querySelectorAll(".cat-pill"), function(p){ p.classList.remove("active"); });
   document.querySelector('.cat-pill[data-cat="all"]').classList.add("active");
   renderList();
