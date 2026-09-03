@@ -122,6 +122,7 @@
   <div class="cat-pill" data-cat="solar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><span>Solar</span><span class="switch"><span class="knob"></span></span></div>
   <div class="cat-pill" data-cat="wind"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2"/><path d="M12.59 19.41A2 2 0 1 0 14 16H2"/><path d="M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/></svg><span>Wind</span><span class="switch"><span class="knob"></span></span></div>
   <div class="cat-pill" data-cat="farmer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M3 9h6l2 4h4V6h-3"/><path d="M3 9v5h1"/></svg><span>Farmer</span><span class="switch"><span class="knob"></span></span></div>
+  <div class="cat-pill" data-cat="otherstates"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><span>Other States</span><span class="switch"><span class="knob"></span></span></div>
 </div>
 
 <div class="inner">
@@ -147,11 +148,9 @@
     <button class="detail-close" id="detailCloseBtn">✕</button>
   </div>
   <div class="detail-inner">
-    <div class="detail-hero">
-      <div class="detail-thumb" id="detailThumb"></div>
-      <div>
-        <div class="detail-price-badge" id="detailBenefitBadge">Subsidy</div>
-      </div>
+    <div class="detail-hero" style="flex-direction:column;align-items:center;text-align:center;gap:10px;">
+      <div class="detail-thumb" id="detailThumb" style="width:88px;height:88px;"></div>
+      <div class="detail-price-badge" id="detailBenefitBadge">Subsidy</div>
     </div>
 
     <div class="box">
@@ -169,6 +168,11 @@
       <div class="spec-row"><span>Registration</span><b id="detailRegDate"></b></div>
       <div class="spec-row"><span>Expiry / Deadline</span><b id="detailExpiryDate"></b></div>
       <div class="spec-row"><span>Benefits from Govt</span><b id="detailBenefitsFromGovt"></b></div>
+    </div>
+
+    <div class="box">
+      <div class="box-title">How to Apply</div>
+      <ol id="detailSteps" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;"></ol>
     </div>
 
     <div class="source-box">
@@ -203,6 +207,13 @@ var SCHEMES = [
       ["Apply via", "pmsuryaghar.gov.in national portal"],
       ["Payout time", "Typically 30-45 days after commissioning"]
     ],
+    steps: [
+      "Go to the pmsuryaghar.gov.in national portal and register with your state, DISCOM, and electricity consumer number.",
+      "Submit your rooftop solar application once your DISCOM confirms technical feasibility.",
+      "Pick an installer from the government-approved (empanelled) vendor list to install your system.",
+      "After installation, apply for net metering and get your DISCOM to inspect and commission the system.",
+      "Submit your bank account details online — the subsidy is credited directly, usually within 30-45 days."
+    ],
     regDate: "Launched 15 Feb 2024 — open, ongoing",
     expiryDate: "No fixed deadline (subject to yearly budget allocation)",
     benefitsFromGovt: "Direct bank subsidy + up to 300 free units/month",
@@ -223,6 +234,13 @@ var SCHEMES = [
       ["Components", "A: Solar plants · B: Standalone pumps · C: Pump solarization"],
       ["Eligible", "Individual farmers, cooperatives, panchayats, FPOs"],
       ["Apply via", "pmkusum.mnre.gov.in"]
+    ],
+    steps: [
+      "Visit pmkusum.mnre.gov.in and pick the component that fits you: A (solar plant), B (standalone pump), or C (pump solarization).",
+      "Register with your state renewable energy agency and submit land/farm ownership documents.",
+      "Wait for feasibility approval from your state nodal agency and DISCOM.",
+      "Choose an empanelled vendor and complete installation.",
+      "Get the system inspected and commissioned to trigger the central + state subsidy payout."
     ],
     regDate: "Launched 2019 — extended, ongoing",
     expiryDate: "Extended to 31 Mar 2026 (may be revised further)",
@@ -245,6 +263,13 @@ var SCHEMES = [
       ["Vendor list", "Must use an NREDCAP-empanelled installer"],
       ["Apply via", "nredcap.in or your local DISCOM office"]
     ],
+    steps: [
+      "Apply for PM Surya Ghar on the national portal, selecting Andhra Pradesh as your state.",
+      "Your application routes to APEPDCL or APSPDCL depending on your area for feasibility approval.",
+      "Choose an NREDCAP-empanelled installer from the state vendor list.",
+      "Complete installation, net metering, and DISCOM inspection as guided by NREDCAP.",
+      "Subsidy is disbursed through the central PM Surya Ghar process once commissioning is confirmed."
+    ],
     regDate: "Ongoing state coordination role",
     expiryDate: "No fixed deadline — tied to PM Surya Ghar timeline",
     benefitsFromGovt: "Facilitates access to central rooftop solar subsidy",
@@ -265,6 +290,13 @@ var SCHEMES = [
       ["Eligible", "SC/ST households in Andhra Pradesh"],
       ["Backward Class support", "Up to ₹80,000 subsidy (₹60k central + ₹20k state)"],
       ["Coordinated by", "DISCOMs and NREDCAP"]
+    ],
+    steps: [
+      "Confirm eligibility through your local welfare/DISCOM office with SC/ST community certificate.",
+      "Register your household details with NREDCAP or your local DISCOM office.",
+      "A government-appointed installer sets up your free 2kWp system at no upfront cost.",
+      "DISCOM completes inspection and commissioning of the system.",
+      "Five years of maintenance is covered automatically — no extra application needed."
     ],
     regDate: "AP state welfare initiative — ongoing",
     expiryDate: "Target: 3 lakh connections by June 2025 (rolling)",
@@ -287,6 +319,13 @@ var SCHEMES = [
       ["Benefits", "Evacuation infrastructure fee exemptions, faster clearances"],
       ["Document", "AP Solar Power Policy (NREDCAP official PDF)"]
     ],
+    steps: [
+      "Review the AP Solar Power Policy document on the NREDCAP website for current eligibility.",
+      "Submit a project proposal to NREDCAP with land and capacity details.",
+      "Apply for land allotment support and evacuation infrastructure clearance.",
+      "Get technical and financial approval from the relevant DISCOM.",
+      "Proceed with construction and commissioning under NREDCAP oversight."
+    ],
     regDate: "AP Solar Power Policy 2018 — in force",
     expiryDate: "Policy period as notified by GoAP (check portal for updates)",
     benefitsFromGovt: "Land support, fee exemptions, faster project clearances",
@@ -308,11 +347,46 @@ var SCHEMES = [
       ["Eligible", "Utility-scale renewable energy developers"],
       ["Apply via", "State nodal agency and respective DISCOM"]
     ],
+    steps: [
+      "Prepare a hybrid project proposal combining wind and solar generation at one site.",
+      "Submit the proposal to your state renewable energy nodal agency.",
+      "Apply for grid connectivity and evacuation approval from the DISCOM/transmission utility.",
+      "Sign a power purchase agreement (PPA) if selling power to the grid.",
+      "Proceed with joint construction and commissioning of the hybrid plant."
+    ],
     regDate: "Notified 2018 — in force",
     expiryDate: "No fixed deadline (ongoing central policy)",
     benefitsFromGovt: "Transmission and grid-connectivity incentives for hybrid projects",
     source: "https://mnre.gov.in/en/national-wind-solar-hybrid-policy/",
     trust: 100
+  },
+  {
+    id: "surya-gujarat",
+    title: "SURYA-Gujarat Rooftop Yojana",
+    org: "Gujarat Energy Development Agency (GEDA)",
+    cat: ["otherstates","solar"],
+    iconName: "home",
+    domain: "geda.gujarat.gov.in",
+    benefit: "State top-up + central subsidy",
+    desc: "Gujarat's state rooftop solar programme, coordinated by GEDA alongside the central PM Surya Ghar scheme. Gujarat is India's top-performing state for rooftop solar installations, with residents applying through the SURYA-Gujarat portal alongside the national one.",
+    specs: [
+      ["Nodal agency", "GEDA (Gujarat Energy Development Agency)"],
+      ["State", "Gujarat"],
+      ["Portal", "SURYA Gujarat state portal + pmsuryaghar.gov.in"],
+      ["DISCOMs", "UGVCL, DGVCL, PGVCL, MGVCL"]
+    ],
+    steps: [
+      "Register on the national PM Surya Ghar portal, selecting Gujarat as your state.",
+      "Also check the SURYA-Gujarat state portal for any additional state-level registration.",
+      "Confirm your installer is empanelled on both the national portal and GEDA's list.",
+      "Complete installation and net metering with your local DISCOM (UGVCL/DGVCL/PGVCL/MGVCL).",
+      "Subsidy is credited after DISCOM verifies commissioning."
+    ],
+    regDate: "Ongoing — Gujarat leads India in rooftop solar installs",
+    expiryDate: "Tied to PM Surya Ghar national timeline",
+    benefitsFromGovt: "Central subsidy facilitated through state GEDA coordination",
+    source: "https://geda.gujarat.gov.in/",
+    trust: 90
   }
 ];
 
@@ -416,10 +490,9 @@ function renderList(){
   emptyEl.style.display = "none";
   listEl.innerHTML = list.map(function(s){
     var badgeClass = s.cat.indexOf("central") !== -1 ? "central" : "state";
-    var badgeText = s.cat.indexOf("central") !== -1 ? "Central" : "AP State";
-    var fallbackIcon = schemeIcon(s.iconName, 24, "#2D6A4F").replace(/"/g, "&quot;");
+    var badgeText = s.cat.indexOf("central") !== -1 ? "Central" : (s.cat.indexOf("otherstates") !== -1 ? "Other State" : "AP State");
     return '<div class="scheme-card" data-id="' + s.id + '">' +
-      '<div class="scheme-thumb" data-fallback="' + fallbackIcon + '"><img src="' + faviconUrl(s.domain) + '" alt="" onerror="this.style.display=\'none\';this.parentNode.innerHTML=this.parentNode.getAttribute(\'data-fallback\');" /></div>' +
+      '<div class="scheme-thumb">' + schemeIcon(s.iconName, 28, "#2D6A4F") + '</div>' +
       '<div class="scheme-body">' +
         '<span class="scheme-badge ' + badgeClass + '">' + badgeText + '</span>' +
         '<div class="scheme-title">' + s.title + '</div>' +
@@ -429,6 +502,10 @@ function renderList(){
       '</div>' +
     '</div>';
   }).join("");
+
+  if (activeCat === "all" && !searchQuery.trim()){
+    listEl.innerHTML += '<div style="text-align:center;padding:16px;color:var(--textMuted);font-size:12.5px;border:1.5px dashed var(--line);border-radius:14px;">More state schemes and sectors are being added — check back soon.</div>';
+  }
 
   Array.prototype.forEach.call(listEl.querySelectorAll(".scheme-card"), function(card){
     card.addEventListener("click", function(){
@@ -441,10 +518,10 @@ function openDetail(id){
   var s = SCHEMES.filter(function(x){ return x.id === id; })[0];
   if (!s) return;
   var isCentral = s.cat.indexOf("central") !== -1;
-  document.getElementById("detailBadgeText").textContent = isCentral ? "CENTRAL SCHEME" : "AP STATE SCHEME";
+  var badgeTxt = isCentral ? "CENTRAL SCHEME" : (s.cat.indexOf("otherstates") !== -1 ? "OTHER STATE SCHEME" : "AP STATE SCHEME");
+  document.getElementById("detailBadgeText").textContent = badgeTxt;
   document.getElementById("detailTitle").textContent = s.title;
-  document.getElementById("detailThumb").setAttribute("data-fallback", schemeIcon(s.iconName, 32, "#2D6A4F").replace(/"/g, "&quot;"));
-  document.getElementById("detailThumb").innerHTML = '<img src="' + faviconUrl(s.domain) + '" alt="" onerror="this.style.display=\'none\';this.parentNode.innerHTML=this.parentNode.getAttribute(\'data-fallback\');" />';
+  document.getElementById("detailThumb").innerHTML = schemeIcon(s.iconName, 36, "#2D6A4F");
   document.getElementById("detailBenefitBadge").textContent = s.benefit;
   document.getElementById("detailDesc").textContent = s.desc;
   document.getElementById("detailSpecs").innerHTML = s.specs.map(function(row){
@@ -453,6 +530,14 @@ function openDetail(id){
   document.getElementById("detailRegDate").textContent = s.regDate || "—";
   document.getElementById("detailExpiryDate").textContent = s.expiryDate || "—";
   document.getElementById("detailBenefitsFromGovt").textContent = s.benefitsFromGovt || "—";
+  var stepsEl = document.getElementById("detailSteps");
+  if (s.steps && s.steps.length){
+    stepsEl.innerHTML = s.steps.map(function(step){
+      return '<li style="font-size:13px;line-height:1.5;color:var(--textDark);">' + step + '</li>';
+    }).join("");
+  } else {
+    stepsEl.innerHTML = '<li style="font-size:13px;color:var(--textMuted);">Visit the official source link below for the application process.</li>';
+  }
   var link = document.getElementById("detailSourceLink");
   link.href = s.source;
   link.textContent = s.source;
@@ -485,9 +570,13 @@ document.getElementById("schemeSearchInput").addEventListener("input", function(
 });
 
 document.getElementById("schemeSearchInput").addEventListener("keydown", function(e){
-  if (e.key === "Enter" && e.target.value.trim()){
-    saveSearchTerm(e.target.value);
-    renderSearchHistory();
+  if (e.key === "Enter"){
+    e.preventDefault();
+    if (e.target.value.trim()){
+      saveSearchTerm(e.target.value);
+      renderSearchHistory();
+    }
+    e.target.blur();
   }
 });
 
