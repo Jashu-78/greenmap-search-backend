@@ -227,7 +227,10 @@
       </div>
     </div>
     <div class="topbar-right">
-      <div class="bell-btn" onclick="toggleNotifications(true)">🔔<span class="bell-dot" id="bellBadge"></span></div>
+      <div class="bell-btn" onclick="toggleNotifications(true)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="bell-dot" id="bellBadge"></span>
+      </div>
     </div>
   </div>
 </div>
@@ -283,6 +286,9 @@
     <button class="menu-login-btn" id="loginBtn" data-state="out" onclick="toggleLogin()">Login with Google</button>
   </div>
   <div class="menu-items">
+    <div class="menu-item" onclick="toggleMenu(false); toggleNotifications(true);"><span class="menu-item-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--textDark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </span> Notifications <span class="bell-dot" id="menuBellBadge" style="position:static;margin-left:auto;"></span></div>
     <div class="menu-item" onclick="toggleMenu(false); toggleSettings(true);"><span class="menu-item-icon">⚙️</span> Settings</div>
     <div class="menu-item" onclick="toggleMenu(false); toggleAbout(true);"><span class="menu-item-icon">ℹ️</span> App Info</div>
   </div>
@@ -804,6 +810,7 @@ async function fetchNotifications(){
 
 async function updateBellBadge(){
   var badge = document.getElementById("bellBadge");
+  var menuBadge = document.getElementById("menuBellBadge");
   try {
     var items = await fetchNotifications();
     var lastSeen = getLastSeenTime();
@@ -811,11 +818,13 @@ async function updateBellBadge(){
     if (unread > 0){
       badge.textContent = unread > 9 ? "9+" : String(unread);
       badge.classList.add("show");
+      if (menuBadge){ menuBadge.textContent = badge.textContent; menuBadge.classList.add("show"); }
       if (window.GM_lastUnreadCount !== undefined && unread > window.GM_lastUnreadCount && window.GM_playNotifSound){
         window.GM_playNotifSound();
       }
     } else {
       badge.classList.remove("show");
+      if (menuBadge) menuBadge.classList.remove("show");
     }
     window.GM_lastUnreadCount = unread;
   } catch (err){
