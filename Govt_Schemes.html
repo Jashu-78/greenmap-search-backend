@@ -430,6 +430,62 @@ var SCHEMES = [
     benefitsFromGovt: "Central subsidy facilitated through state GEDA coordination",
     source: "https://geda.gujarat.gov.in/",
     trust: 90
+  },
+  {
+    id: "national-offshore-wind",
+    title: "National Offshore Wind Energy Policy",
+    org: "Ministry of New & Renewable Energy (MNRE) + National Institute of Wind Energy (NIWE)",
+    cat: ["central","wind"],
+    iconName: "wind",
+    domain: "mnre.gov.in",
+    benefit: "Nodal support for offshore wind projects",
+    desc: "India's core policy for developing offshore wind power within its Exclusive Economic Zone (waters up to 200 nautical miles from the coast). MNRE is the nodal ministry and NIWE the nodal agency, coordinating site studies, project bidding, and clearances — with early development zones identified off Gujarat and Tamil Nadu.",
+    specs: [
+      ["Nodal ministry", "MNRE"],
+      ["Nodal agency", "NIWE (National Institute of Wind Energy)"],
+      ["Coverage", "Up to 200 nautical miles from India's coastline (EEZ)"],
+      ["Early zones", "Off the coast of Gujarat and Tamil Nadu"]
+    ],
+    steps: [
+      "Review offshore wind zone studies and site data published by NIWE.",
+      "Register interest through NIWE for zones opened for bidding.",
+      "Participate in MNRE/NIWE's competitive bidding process for offshore wind blocks.",
+      "Coordinate with MNRE for EEZ clearances and inter-ministry approvals.",
+      "Proceed with project development once allocation and clearances are finalized."
+    ],
+    regDate: "Notified 6 Oct 2015 — in force",
+    expiryDate: "No fixed deadline (ongoing central policy)",
+    benefitsFromGovt: "Government-coordinated site studies, single-window clearances, viability gap funding for early projects",
+    source: "https://mnre.gov.in/en/off-shore-wind/",
+    trust: 100
+  },
+  {
+    id: "tngecl-tamil-nadu",
+    title: "Tamil Nadu Renewable Energy (via TNGECL)",
+    org: "Tamil Nadu Green Energy Corporation Limited (TNGECL)",
+    cat: ["otherstates","wind","solar"],
+    iconName: "wind",
+    domain: "tngecl.org",
+    benefit: "State facilitation for wind, solar & storage",
+    desc: "TNGECL is Tamil Nadu's state renewable energy corporation, formed in 2024 by merging the former Tamil Nadu Energy Development Agency (TEDA) with TANGEDCO's renewable wing. Tamil Nadu is India's leading wind power state and is now expanding into offshore wind, solar, and energy storage.",
+    specs: [
+      ["Nodal agency", "TNGECL (formed 2024, successor to TEDA)"],
+      ["State", "Tamil Nadu"],
+      ["Focus", "Wind, solar, hydro, and energy storage projects"],
+      ["Notable site", "Muppandal — India's largest onshore wind farm"]
+    ],
+    steps: [
+      "Check current renewable energy programmes on the TNGECL portal for your project type.",
+      "Register your project or rooftop solar interest with TNGECL/local DISCOM.",
+      "Apply for any applicable state incentives alongside central schemes like PM Surya Ghar.",
+      "Complete technical clearance and grid connectivity approval with TANTRANSCO/TNPDCL.",
+      "Proceed with installation and commissioning under TNGECL coordination."
+    ],
+    regDate: "TNGECL formed 2024 — ongoing",
+    expiryDate: "No fixed deadline (ongoing state programmes)",
+    benefitsFromGovt: "State-level coordination, grid access support for wind/solar/storage projects",
+    source: "https://www.tngecl.org/",
+    trust: 90
   }
 ];
 
@@ -518,18 +574,61 @@ function gmGetLastSeen(){
 // since both read/write the same "gm_notif_..." localStorage keys).
 function getVisibleNotifLog(){
   var clearedBefore = gmGetClearedBefore();
-  return getNotifLog().filter(function(n){
+  var local = getNotifLog();
+  var firebaseItems = (window.GS_firebaseNotifs || []);
+  var merged = local.concat(firebaseItems).filter(function(n){
     var t = new Date(n.time).getTime();
     return !clearedBefore || t > clearedBefore;
   });
+  merged.sort(function(a, b){ return new Date(b.time).getTime() - new Date(a.time).getTime(); });
+  return merged;
 }
+
+// Notification sound — reads the same "gm_notif_sound" preference chosen
+// in the Home Page's Settings, so all three pages play the identical tone.
+var GM_SOUND_KEY = "gm_notif_sound";
+var GM_SOUNDS = {
+  chime:  { notes: [660, 880] },
+  ding:   { notes: [988] },
+  pop:    { notes: [440] },
+  marimba:{ notes: [523, 659, 784] }
+};
+var gmAudioCtx = null;
+function gmGetAudioCtx(){
+  if (!gmAudioCtx) gmAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return gmAudioCtx;
+}
+function gmPlayNotifSound(){
+  var key = localStorage.getItem(GM_SOUND_KEY) || "chime";
+  var sound = GM_SOUNDS[key] || GM_SOUNDS.chime;
+  try{
+    var ctx = gmGetAudioCtx();
+    var startAt = ctx.currentTime;
+    sound.notes.forEach(function(freq, i){
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      var t = startAt + i * 0.12;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.25, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.3);
+    });
+  }catch(err){ console.warn("Could not play notification sound:", err); }
+}
+var gmLastUnreadCount;
 
 function updateBellBadge(){
   var badge = document.getElementById("bellBadge");
   if (!badge) return;
   var lastSeen = gmGetLastSeen();
-  var hasUnread = getVisibleNotifLog().some(function(n){ return new Date(n.time).getTime() > lastSeen; });
-  badge.classList.toggle("show", hasUnread);
+  var unread = getVisibleNotifLog().filter(function(n){ return new Date(n.time).getTime() > lastSeen; }).length;
+  badge.classList.toggle("show", unread > 0);
+  if (gmLastUnreadCount !== undefined && unread > gmLastUnreadCount) gmPlayNotifSound();
+  gmLastUnreadCount = unread;
 }
 
 function formatNotifTime(iso){
@@ -878,6 +977,69 @@ document.getElementById("schemeRefreshBtn").addEventListener("click", function()
 checkForUpdatesAndNotify();
 updateBellBadge();
 renderList();
+</script>
+
+<script type="module">
+// ---------------------------------------------------------------------------
+// Reads the same shared "notifications" collection (same Firebase project
+// as EnergyHub/GreenMap_App) so this page's bell shows everything — shop
+// follows, orders, etc. — merged with this page's own local scheme alerts.
+// Read-only here: this page doesn't sign people in or write notifications.
+// ---------------------------------------------------------------------------
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDbi-gQfQTYSI3naZX0679JXZBKiLGmygE",
+  authDomain: "energyhub-af4da.firebaseapp.com",
+  projectId: "energyhub-af4da",
+  storageBucket: "energyhub-af4da.firebasestorage.app",
+  messagingSenderId: "1013915721842",
+  appId: "1:1013915721842:web:c19916e3b0155a5f1b22eb"
+};
+
+const gsApp = initializeApp(firebaseConfig);
+const gsAuth = getAuth(gsApp);
+const gsDb = getFirestore(gsApp);
+
+window.GS_firebaseNotifs = [];
+
+async function gsFetchFirebaseNotifs(){
+  try{
+    var clearedBefore = (typeof gmGetClearedBefore === "function") ? gmGetClearedBefore() : 0;
+    var q = query(collection(gsDb, "notifications"), orderBy("createdAt", "desc"), limit(30));
+    var snap = await getDocs(q);
+    var user = gsAuth.currentUser;
+    var uid = user ? user.uid : null;
+    var email = user ? user.email : null;
+    var items = [];
+    snap.forEach(function(docSnap){
+      var d = docSnap.data();
+      if (d.targetUids || d.targetEmails){
+        var matchesUid = d.targetUids && uid && d.targetUids.indexOf(uid) !== -1;
+        var matchesEmail = d.targetEmails && email && d.targetEmails.indexOf(email) !== -1;
+        if (!matchesUid && !matchesEmail) return;
+      }
+      var time = d.createdAt && d.createdAt.toMillis ? d.createdAt.toMillis() : 0;
+      if (time && clearedBefore && time <= clearedBefore) return;
+      items.push({
+        title: d.title || "Notification",
+        body: d.message || "",
+        time: time ? new Date(time).toISOString() : new Date().toISOString()
+      });
+    });
+    window.GS_firebaseNotifs = items;
+    if (typeof updateBellBadge === "function") updateBellBadge();
+    var panel = document.getElementById("notifPanel");
+    if (panel && panel.classList.contains("open") && typeof renderNotifPanel === "function") renderNotifPanel();
+  }catch(err){
+    console.warn("Could not load shared notifications:", err);
+  }
+}
+
+onAuthStateChanged(gsAuth, function(){ gsFetchFirebaseNotifs(); });
+gsFetchFirebaseNotifs();
 </script>
 </body>
 </html>
