@@ -34,6 +34,12 @@
   .search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);}
   .search-wrap input{width:100%;padding:9px 12px 9px 34px;border-radius:8px;border:none;background:var(--primaryDeep);color:#fff;font-size:13.5px;}
   .search-wrap input::placeholder{color:#B7D4C3;}
+  .recent-search-dropdown-ses{display:none;flex-direction:column;position:absolute;left:0;right:0;top:100%;margin-top:6px;background:#fff;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.25);overflow:hidden;z-index:40;padding:10px 12px;}
+  .recent-search-dropdown-ses.show{display:flex;}
+  .recent-search-dropdown-ses-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .recent-search-dropdown-ses-title{font-size:11.5px;font-weight:800;color:var(--primary2);text-transform:uppercase;letter-spacing:.04em;}
+  .recent-search-dropdown-ses-clear{background:none;border:none;color:var(--accentDeep);font-weight:700;font-size:11px;cursor:pointer;}
+  .recent-search-dropdown-ses-chips{display:flex;flex-wrap:wrap;gap:8px;}
 
   .layout{max-width:1240px;margin:0 auto;padding:20px;display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;}
   aside{width:270px;flex-shrink:0;background:#fff;border-radius:12px;border:1px solid var(--line);padding:16px 18px;position:sticky;top:84px;max-height:calc(100vh - 104px);overflow-y:auto;}
@@ -233,6 +239,13 @@
       <div class="search-wrap">
         <span id="searchIcon"></span>
         <input id="searchInput" type="text" placeholder="Search panels, turbines, brands…" />
+        <div id="recentSearchDropdownSES" class="recent-search-dropdown-ses">
+          <div class="recent-search-dropdown-ses-head">
+            <span class="recent-search-dropdown-ses-title">Recent Searches</span>
+            <button id="clearHistoryBtnSES" type="button" class="recent-search-dropdown-ses-clear">Clear</button>
+          </div>
+          <div id="searchHistoryChipsSES" class="recent-search-dropdown-ses-chips"></div>
+        </div>
       </div>
       <button id="sortToggleBtn" class="icon-btn" aria-label="Sort">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
@@ -272,13 +285,6 @@
           <option value="rating">User Rating</option>
         </select>
       </div>
-    </div>
-    <div id="searchHistoryBoxSES" style="display:none;margin:0 0 14px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <div style="font-size:12.5px;font-weight:800;color:var(--primary2);text-transform:uppercase;letter-spacing:.04em;">Recent Searches</div>
-        <button id="clearHistoryBtnSES" style="background:none;border:none;color:var(--accentDeep);font-weight:700;font-size:11.5px;cursor:pointer;">Clear</button>
-      </div>
-      <div id="searchHistoryChipsSES" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
     </div>
     <div class="web-search-row">
       <a id="webSearchBtn" class="web-search-link" href="#" target="_blank" rel="noopener">
@@ -623,17 +629,19 @@ function sesClearSearchHistory(){
   sesRenderSearchHistory();
 }
 
+var sesSearchInputFocused = false;
+
 function sesRenderSearchHistory(){
-  var box = document.getElementById("searchHistoryBoxSES");
+  var box = document.getElementById("recentSearchDropdownSES");
   var chipsEl = document.getElementById("searchHistoryChipsSES");
   if (!box || !chipsEl) return;
   var hist = sesGetSearchHistory();
-  var showHistory = !state.query.trim() && hist.length > 0;
+  var showHistory = sesSearchInputFocused && !state.query.trim() && hist.length > 0;
   if (!showHistory){
-    box.style.display = "none";
+    box.classList.remove("show");
     return;
   }
-  box.style.display = "block";
+  box.classList.add("show");
   chipsEl.innerHTML = hist.map(function(term){
     return '<div class="history-chip-ses" data-term="' + term.replace(/"/g, "&quot;") + '">' +
       '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>' +
@@ -644,10 +652,16 @@ function sesRenderSearchHistory(){
       var term = chip.getAttribute("data-term");
       document.getElementById("searchInput").value = term;
       state.query = term;
+      box.classList.remove("show");
       renderResults();
     });
   });
 }
+
+var recentSearchDropdownSESEl = document.getElementById("recentSearchDropdownSES");
+if (recentSearchDropdownSESEl) recentSearchDropdownSESEl.addEventListener("mousedown", function(e){
+  e.preventDefault();
+});
 
 function renderResults(){
   var list = getFiltered();
@@ -1097,11 +1111,17 @@ document.getElementById("searchInput").addEventListener("keydown", function(e){
   }
 });
 
+document.getElementById("searchInput").addEventListener("focus", function(){
+  sesSearchInputFocused = true;
+  sesRenderSearchHistory();
+});
+
 document.getElementById("searchInput").addEventListener("blur", function(e){
+  sesSearchInputFocused = false;
   if (e.target.value.trim()){
     sesSaveSearchTerm(e.target.value);
-    sesRenderSearchHistory();
   }
+  sesRenderSearchHistory();
 });
 
 var clearHistoryBtnSESEl = document.getElementById("clearHistoryBtnSES");

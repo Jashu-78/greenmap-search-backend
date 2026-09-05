@@ -31,6 +31,12 @@
   .search-wrap svg.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);}
   .search-wrap input{width:100%;padding:9px 12px 9px 34px;border-radius:8px;border:none;background:var(--primaryDeep);color:#fff;font-size:13.5px;}
   .search-wrap input::placeholder{color:#B7D4C3;}
+  .recent-search-dropdown{display:none;flex-direction:column;position:absolute;left:0;right:0;top:100%;margin-top:6px;background:#fff;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.25);overflow:hidden;z-index:40;padding:10px 12px;}
+  .recent-search-dropdown.show{display:flex;}
+  .recent-search-dropdown-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .recent-search-dropdown-title{font-size:11.5px;font-weight:800;color:var(--primary);text-transform:uppercase;letter-spacing:.04em;}
+  .recent-search-dropdown-clear{background:none;border:none;color:var(--accentDeep);font-weight:700;font-size:11px;cursor:pointer;}
+  .recent-search-dropdown-chips{display:flex;flex-wrap:wrap;gap:8px;}
   .icon-btn{flex-shrink:0;width:38px;height:38px;border-radius:8px;border:none;background:var(--primaryDeep);display:flex;align-items:center;justify-content:center;cursor:pointer;}
   .icon-btn svg{transition:transform .5s;}
 
@@ -129,6 +135,13 @@
       <div class="search-wrap">
         <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B7D4C3" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
         <input id="schemeSearchInput" type="text" placeholder="Search schemes, subsidies…" />
+        <div id="recentSearchDropdown" class="recent-search-dropdown">
+          <div class="recent-search-dropdown-head">
+            <span class="recent-search-dropdown-title">Recent Searches</span>
+            <button id="clearHistoryBtn" type="button" class="recent-search-dropdown-clear">Clear</button>
+          </div>
+          <div id="searchHistoryChips" class="recent-search-dropdown-chips"></div>
+        </div>
       </div>
       <button id="schemeRefreshBtn" class="icon-btn" aria-label="Refresh">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -163,13 +176,6 @@
 
 <div class="inner">
   <div class="result-count" id="resultCount"></div>
-  <div id="searchHistoryBox" style="display:none;margin-bottom:14px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <div style="font-size:12.5px;font-weight:800;color:var(--primary);text-transform:uppercase;letter-spacing:.04em;">Recent Searches</div>
-      <button id="clearHistoryBtn" style="background:none;border:none;color:var(--accentDeep);font-weight:700;font-size:11.5px;cursor:pointer;">Clear</button>
-    </div>
-    <div id="searchHistoryChips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-  </div>
   <div id="schemeList"></div>
   <div class="empty-state" id="emptyState" style="display:none;">No schemes match your search.</div>
 </div>
@@ -774,16 +780,18 @@ function clearSearchHistory(){
   renderSearchHistory();
 }
 
+var searchInputFocused = false;
+
 function renderSearchHistory(){
-  var box = document.getElementById("searchHistoryBox");
+  var box = document.getElementById("recentSearchDropdown");
   var chipsEl = document.getElementById("searchHistoryChips");
   var hist = getSearchHistory();
-  var showHistory = activeCat === "all" && !searchQuery.trim() && hist.length > 0;
+  var showHistory = searchInputFocused && !searchQuery.trim() && hist.length > 0;
   if (!showHistory){
-    box.style.display = "none";
+    box.classList.remove("show");
     return;
   }
-  box.style.display = "block";
+  box.classList.add("show");
   chipsEl.innerHTML = hist.map(function(term){
     return '<div class="history-chip" data-term="' + term.replace(/"/g, "&quot;") + '">' +
       '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>' +
@@ -794,12 +802,29 @@ function renderSearchHistory(){
       var term = chip.getAttribute("data-term");
       document.getElementById("schemeSearchInput").value = term;
       searchQuery = term;
+      box.classList.remove("show");
       renderList();
     });
   });
 }
 
+// Prevents the dropdown's mousedown (choosing a chip) from blurring the
+// input before the click registers.
+document.getElementById("recentSearchDropdown").addEventListener("mousedown", function(e){
+  e.preventDefault();
+});
+
 document.getElementById("clearHistoryBtn").addEventListener("click", clearSearchHistory);
+
+document.getElementById("schemeSearchInput").addEventListener("focus", function(){
+  searchInputFocused = true;
+  renderSearchHistory();
+});
+
+document.getElementById("schemeSearchInput").addEventListener("blur", function(){
+  searchInputFocused = false;
+  renderSearchHistory();
+});
 
 function faviconUrl(domain){
   return "https://www.google.com/s2/favicons?sz=128&domain=" + domain;
