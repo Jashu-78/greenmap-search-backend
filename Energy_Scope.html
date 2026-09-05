@@ -39,6 +39,16 @@
   .notif-clear-row{padding:12px 14px;border-top:1px solid var(--line);}
   .notif-clear-row button{width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--accentDeep);font-weight:700;font-size:13px;cursor:pointer;}
   .back-btn{color:#fff;text-decoration:none;font-size:13px;display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.15);padding:5px 12px 5px 8px;border-radius:20px;}
+  .menu-btn{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.15);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+  .menu-overlay{position:fixed;inset:0;background:rgba(9,26,17,.45);z-index:90;opacity:0;pointer-events:none;transition:opacity .18s ease;}
+  .menu-overlay.open{opacity:1;pointer-events:auto;}
+  .menu-panel{position:fixed;top:0;left:0;bottom:0;width:min(78vw,300px);background:#fff;z-index:95;transform:translateX(-105%);transition:transform .22s ease;box-shadow:6px 0 24px rgba(0,0,0,.18);display:flex;flex-direction:column;}
+  .menu-panel.open{transform:translateX(0);}
+  .menu-panel-header{background:var(--primary);color:#fff;padding:18px 20px;font-weight:800;font-size:15px;}
+  .menu-items{padding:10px 0;flex:1;}
+  .menu-item{display:flex;align-items:center;gap:12px;padding:14px 20px;font-size:14.5px;color:var(--textDark);cursor:pointer;border-bottom:1px solid var(--line);}
+  .menu-item:hover{background:var(--card);}
+  .menu-item-icon{width:20px;text-align:center;}
   .back-btn:active{background:rgba(255,255,255,.28);}
   .logo-row{display:flex;align-items:center;justify-content:center;width:100%;}
   .logo-word-img{width:280px;height:65px;object-fit:contain;display:block;}
@@ -97,7 +107,10 @@
 
 <div class="header">
   <div class="header-inner">
-    <div class="back-row">
+    <div class="back-row" style="display:flex;align-items:center;gap:8px;">
+      <button class="menu-btn" onclick="toggleMenu(true)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
       <a href="GreenMap_App.html" class="back-btn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
         Home
@@ -147,6 +160,15 @@
   </div>
   <div class="notif-clear-row" id="notifClearRow" style="display:none;">
     <button type="button" id="notifClearBtn">Clear all</button>
+  </div>
+</div>
+
+<div class="menu-overlay" id="menuOverlay" onclick="toggleMenu(false)"></div>
+<div class="menu-panel" id="menuPanel">
+  <div class="menu-panel-header">EnergyScope AP</div>
+  <div class="menu-items">
+    <div class="menu-item" onclick="toggleMenu(false); toggleNotifPanel(true);"><span class="menu-item-icon">🔔</span> Notifications <span class="bell-dot" id="menuBellBadge" style="position:static;margin-left:auto;"></span></div>
+    <div class="menu-item" onclick="location.href='GreenMap_App.html'"><span class="menu-item-icon">🏠</span> Home</div>
   </div>
 </div>
 
@@ -1023,16 +1045,24 @@ var esLastUnreadCount;
 function esUpdateBellBadge(){
   var badge = document.getElementById("bellBadge");
   if (!badge) return;
+  var menuBadge = document.getElementById("menuBellBadge");
   var lastSeen = esGetLastSeen();
   var unread = esGetVisibleNotifLog().filter(function(n){ return new Date(n.time).getTime() > lastSeen; }).length;
   if (unread > 0){
     badge.textContent = unread > 9 ? "9+" : String(unread);
     badge.classList.add("show");
+    if (menuBadge){ menuBadge.textContent = badge.textContent; menuBadge.classList.add("show"); }
   } else {
     badge.classList.remove("show");
+    if (menuBadge) menuBadge.classList.remove("show");
   }
   if (esLastUnreadCount !== undefined && unread > esLastUnreadCount) esPlayNotifSound();
   esLastUnreadCount = unread;
+}
+
+function toggleMenu(open){
+  document.getElementById("menuOverlay").classList.toggle("open", open);
+  document.getElementById("menuPanel").classList.toggle("open", open);
 }
 
 function esFormatNotifTime(iso){

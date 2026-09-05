@@ -800,6 +800,11 @@
   <button type="button" id="orderToastLink" class="order-toast-link">View in Orders</button>
 </div>
 
+<div id="cartToast" class="order-toast">
+  <span id="cartToastText">🛒 Added to cart!</span>
+  <button type="button" id="cartToastLink" class="order-toast-link">View Cart</button>
+</div>
+
 <div id="paymentOverlay" class="payment-overlay">
   <div class="payment-modal">
 
@@ -1249,7 +1254,33 @@ window.EHUB_setCurrentUser = function(user){
   window.currentUser = user;
   if (typeof updateUserChip === "function") updateUserChip();
   if (typeof refreshOwnedShops === "function") refreshOwnedShops();
+  if (typeof healStaleFollowNames === "function") healStaleFollowNames();
 };
+
+// One-time self-heal: older follow records saved before the currentUser
+// sync fix may have "Someone" (or another stale name) baked in as the
+// follower's name. Whenever someone signs in with a real display name,
+// quietly fix up any of THEIR OWN follow docs that don't match it yet.
+async function healStaleFollowNames(){
+  if (!currentUser || !currentUser.displayName) return;
+  try {
+    var q = window.EHUB.query(
+      window.EHUB.collection(window.EHUB.db, "follows"),
+      window.EHUB.where("userId", "==", currentUser.uid)
+    );
+    var snap = await window.EHUB.getDocs(q);
+    var updates = [];
+    snap.forEach(function(docSnap){
+      var data = docSnap.data();
+      if (data.userName !== currentUser.displayName){
+        updates.push(window.EHUB.updateDoc(docSnap.ref, { userName: currentUser.displayName }));
+      }
+    });
+    if (updates.length) await Promise.all(updates);
+  } catch (err){
+    console.warn("Could not heal stale follow names:", err);
+  }
+}
 var pinMarker = null;
 var pinLatLng = null;
 
@@ -1378,6 +1409,40 @@ function formatOrderDate(createdAtDate){
     " · " + createdAtDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 }
 
+// Fires exactly once per order when its tracker reaches "Handed Over" —
+// a simple "delivered" ping for the buyer, and a fuller one (who + what)
+// for the shop owner. Guarded by localStorage so re-rendering/refreshing
+// the order list doesn't send it again.
+function maybeNotifyDelivered(orderId, order, itemsForThisView, showBuyerInfo){
+  var guardKey = "eh_delivered_notified_" + (showBuyerInfo ? "seller_" : "buyer_") + orderId + (showBuyerInfo && itemsForThisView[0] ? "_" + itemsForThisView[0].shopId : "");
+  if (localStorage.getItem(guardKey)) return;
+  localStorage.setItem(guardKey, "1");
+
+  if (showBuyerInfo){
+    // Seller view: full detail — who it was delivered to and what.
+    // Only the shop owner ever renders this view, so currentUser IS the
+    // recipient (avoids misfiring to other owners in a multi-shop order).
+    var shopId = itemsForThisView[0] ? itemsForThisView[0].shopId : null;
+    var itemNames = itemsForThisView.map(function(it){ return it.name + " (x" + it.qty + ")"; }).join(", ");
+    addNotification({
+      type: "order",
+      title: "Order delivered to " + (order.buyerName || "Guest"),
+      message: itemNames,
+      targetUids: currentUser ? [currentUser.uid] : [],
+      link: "EnergyHub.html?openSellerOrders=1&shop=" + encodeURIComponent(shopId || "")
+    });
+  } else {
+    // Buyer view: short and simple, like a Swiggy/Zomato delivery ping.
+    addNotification({
+      type: "order",
+      title: "Order delivered ✅",
+      message: "Your order #" + orderId.slice(-6).toUpperCase() + " has arrived.",
+      targetUids: [order.buyerUid],
+      link: "EnergyHub.html?openOrders=1"
+    });
+  }
+}
+
 function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
   var createdAtDate = order.createdAt && order.createdAt.toDate ? order.createdAt.toDate() : null;
   var stageIdx = trackerStageIndex(createdAtDate);
@@ -1396,6 +1461,7 @@ function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
 
   var secondsElapsed = createdAtDate ? (Date.now() - createdAtDate.getTime()) / 1000 : 0;
   var trackerFinished = secondsElapsed >= TRACKER_STAGES.length * 30;
+  if (trackerFinished) maybeNotifyDelivered(orderId, order, itemsToShow, showBuyerInfo);
 
   var trackerHtml = trackerFinished
     ? '<div class="order-delivered-line">✅ Delivered — order complete</div>'
@@ -2811,6 +2877,8 @@ function addToCart(shopId, shopName, productId, productName, price, unit, photoU
     cart.push({ shopId: shopId, shopName: shopName, productId: productId, name: productName, price: price, unit: unit, photoURL: photoURL || "", category: category || "", shopOwnerUid: shopOwnerUid || "", qty: 1, selected: true });
   }
   saveCart(cart);
+  updateCartBadge();
+  showCartToast(productName);
 }
 
 function updateCartBadge(){
@@ -2995,6 +3063,23 @@ document.getElementById("orderToastLink").addEventListener("click", function(){
   loadBuyerOrders();
   openSheet(ordersSheet);
   startOrdersRefresh(loadBuyerOrders);
+});
+
+// Confirms an item landed in the cart — shown briefly, then fades on its own.
+var cartToastTimer = null;
+function showCartToast(productName){
+  var toast = document.getElementById("cartToast");
+  var textEl = document.getElementById("cartToastText");
+  if (textEl) textEl.textContent = "🛒 Added \"" + productName + "\" to cart!";
+  toast.classList.add("show");
+  if (cartToastTimer) clearTimeout(cartToastTimer);
+  cartToastTimer = setTimeout(function(){ toast.classList.remove("show"); }, 4000);
+}
+document.getElementById("cartToastLink").addEventListener("click", function(){
+  document.getElementById("cartToast").classList.remove("show");
+  if (cartToastTimer){ clearTimeout(cartToastTimer); cartToastTimer = null; }
+  renderCart();
+  openSheet(cartSheet);
 });
 
 document.getElementById("payCancelBtn").addEventListener("click", closePaymentFlow);
