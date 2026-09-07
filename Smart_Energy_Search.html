@@ -1340,7 +1340,7 @@ loadEnergyHubProducts();
 // ---------------------------------------------------------------------------
 // Hamburger menu
 // ---------------------------------------------------------------------------
-function toggleMenuSES(open){
+window.toggleMenuSES = function(open){
   document.getElementById("menuOverlaySES").classList.toggle("open", open);
   document.getElementById("menuPanelSES").classList.toggle("open", open);
 }
@@ -1356,13 +1356,13 @@ var SES_NOTIF_SEEN_KEY = "gm_notif_last_seen";
 var SES_NOTIF_CLEARED_KEY = "gm_notif_cleared_before";
 var SES_GOVT_SCHEMES_LOG_KEY = "govtSchemes_notifLog";
 
-function sesNotifGetClearedBefore(){
+window.sesNotifGetClearedBefore = function(){
   try{ var raw = localStorage.getItem(SES_NOTIF_CLEARED_KEY); return raw ? parseInt(raw, 10) : 0; }catch(e){ return 0; }
 }
-function sesNotifGetLastSeen(){
+window.sesNotifGetLastSeen = function(){
   try{ var raw = localStorage.getItem(SES_NOTIF_SEEN_KEY); return raw ? parseInt(raw, 10) : 0; }catch(e){ return 0; }
 }
-function sesNotifGetLocalSchemeLog(){
+window.sesNotifGetLocalSchemeLog = function(){
   try{
     var raw = localStorage.getItem(SES_GOVT_SCHEMES_LOG_KEY);
     return raw ? JSON.parse(raw) : [];
@@ -1371,7 +1371,7 @@ function sesNotifGetLocalSchemeLog(){
 
 window.SES_firebaseNotifs = [];
 
-function sesNotifGetVisibleLog(){
+window.sesNotifGetVisibleLog = function(){
   var clearedBefore = sesNotifGetClearedBefore();
   var merged = sesNotifGetLocalSchemeLog().concat(window.SES_firebaseNotifs || []);
   merged = merged.filter(function(n){
@@ -1392,11 +1392,11 @@ var SES_SOUNDS = {
   marimba:{ notes: [523, 659, 784] }
 };
 var sesAudioCtx = null;
-function sesGetAudioCtxForNotif(){
+window.sesGetAudioCtxForNotif = function(){
   if (!sesAudioCtx) sesAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
   return sesAudioCtx;
 }
-function sesPlayNotifSound(){
+window.sesPlayNotifSound = function(){
   var key = localStorage.getItem(SES_SOUND_KEY) || "chime";
   var sound = SES_SOUNDS[key] || SES_SOUNDS.chime;
   try{
@@ -1419,7 +1419,7 @@ function sesPlayNotifSound(){
 }
 var sesLastUnreadCount;
 
-function sesUpdateBellBadge(){
+window.sesUpdateBellBadge = function(){
   var badge = document.getElementById("bellBadge");
   if (!badge) return;
   var menuBadge = document.getElementById("menuBellBadge");
@@ -1437,14 +1437,14 @@ function sesUpdateBellBadge(){
   sesLastUnreadCount = unread;
 }
 
-function sesFormatNotifTime(iso){
+window.sesFormatNotifTime = function(iso){
   try{
     var d = new Date(iso);
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " · " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
   }catch(e){ return ""; }
 }
 
-function sesRenderNotifPanel(){
+window.sesRenderNotifPanel = function(){
   var listEl = document.getElementById("notifItemsListSES");
   var clearRow = document.getElementById("notifClearRowSES");
   var log = sesNotifGetVisibleLog();
@@ -1463,7 +1463,7 @@ function sesRenderNotifPanel(){
   }).join("");
 }
 
-function toggleNotifPanelSES(open){
+window.toggleNotifPanelSES = function(open){
   document.getElementById("notifOverlaySES").classList.toggle("open", open);
   document.getElementById("notifPanelSES").classList.toggle("open", open);
   if (open){
