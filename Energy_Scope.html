@@ -17,11 +17,11 @@
   button{font-family:inherit;}
   a{color:inherit;}
 
-  .header{background:var(--primary);color:#fff;padding:14px 20px;position:relative;}
+  .header{background:var(--primary);color:#fff;padding:6px 20px;position:relative;}
   .header-inner{max-width:1240px;margin:0 auto;position:relative;min-height:0;display:flex;flex-direction:column;}
-  .back-row{align-self:flex-start;margin-bottom:2px;}
+  .back-row{align-self:flex-start;margin-bottom:0;}
   .top-row{display:flex;align-items:center;gap:8px;width:100%;position:relative;}
-  .logo-center-group{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:8px;}
+  .logo-center-group{position:absolute;left:50%;top:50%;transform:translate(-50%,calc(-50% - 10px));display:flex;align-items:center;gap:8px;}
   .top-row-spacer{flex:1;}
   .bell-dot{display:none;position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 3px;border-radius:999px;background:#E8433B;color:#fff;font-size:9.5px;font-weight:800;line-height:16px;text-align:center;box-shadow:0 0 0 1.5px var(--primaryDeep);}
   .bell-dot.show{display:block;}
@@ -39,11 +39,11 @@
   .notif-item-time{font-size:10.5px;color:var(--textMuted);margin-top:5px;}
   .notif-clear-row{padding:12px 14px;border-top:1px solid var(--line);}
   .notif-clear-row button{width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--accentDeep);font-weight:700;font-size:13px;cursor:pointer;}
-  .back-btn{color:#fff;text-decoration:none;font-size:11px;display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.15);padding:3px 9px 3px 6px;border-radius:16px;}
+  .back-btn{color:#fff;text-decoration:none;font-size:11px;display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.15);padding:3px 9px 3px 6px;border-radius:16px;position:relative;top:-3px;}
   .back-btn:active{background:rgba(255,255,255,.28);}
   .menu-btn{background:rgba(255,255,255,.15);border:none;border-radius:10px;width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;}
   .menu-btn:active{background:rgba(255,255,255,.28);}
-  .bell-btn{background:rgba(255,255,255,.15);border-radius:10px;width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;}
+  .bell-btn{background:rgba(255,255,255,.15);border-radius:10px;width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;top:-10px;}
   .menu-overlay{position:fixed;inset:0;background:rgba(9,26,17,.45);z-index:90;opacity:0;pointer-events:none;transition:opacity .18s ease;}
   .menu-overlay.open{opacity:1;pointer-events:auto;}
   .menu-panel{position:fixed;top:0;left:0;bottom:0;width:min(78vw,300px);background:#fff;z-index:95;transform:translateX(-105%);transition:transform .22s ease;box-shadow:6px 0 24px rgba(0,0,0,.18);display:flex;flex-direction:column;}
@@ -173,8 +173,6 @@
 <div class="menu-panel" id="menuPanel">
   <div class="menu-panel-header">EnergyScope AP</div>
   <div class="menu-items">
-    <div class="menu-item" onclick="location.href='GreenMap_App.html'"><span class="menu-item-icon">🏠</span> Home</div>
-    <div class="menu-item" onclick="toggleMenu(false); toggleNotifPanel(true);"><span class="menu-item-icon">🔔</span> Notifications <span class="bell-dot" id="menuBellBadge" style="position:static;margin-left:auto;"></span></div>
   </div>
 </div>
 
