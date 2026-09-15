@@ -59,7 +59,7 @@
   .inner{max-width:640px;margin:0 auto;padding:16px;}
   .result-count{font-size:12.5px;color:var(--textMuted);margin-bottom:12px;}
 
-  .scheme-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.04);cursor:pointer;display:flex;gap:12px;}
+  .scheme-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.04);cursor:pointer;display:flex;gap:12px;position:relative;}
   .scheme-card:active{background:var(--card);}
   .scheme-thumb{width:60px;height:60px;border-radius:12px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;overflow:hidden;}
   .scheme-thumb img{width:100%;height:100%;object-fit:contain;padding:8px;}
@@ -71,6 +71,16 @@
   .scheme-org{font-size:11.5px;color:var(--textMuted);margin-bottom:4px;}
   .scheme-desc{font-size:12.5px;color:var(--textDark);line-height:1.4;}
   .trust-pill{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;color:var(--primary2);margin-top:6px;}
+  .countdown-badge{position:absolute;top:10px;right:12px;font-size:9.5px;font-weight:800;padding:3px 7px;border-radius:999px;background:#EAF4EE;color:var(--primary2);letter-spacing:.2px;white-space:nowrap;}
+  .countdown-badge.urgent{background:#FDEAEA;color:#C0392B;}
+  .countdown-badge.expired-tag{background:#FBEAEA;color:#C0392B;}
+  .new-tag{display:inline-block;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:999px;background:#FFD54A;color:#5C4400;margin-left:6px;vertical-align:middle;}
+  .expired-toggle{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;margin-top:4px;margin-bottom:8px;border-radius:14px;border:1.5px dashed var(--line);color:var(--textMuted);font-size:12.5px;font-weight:700;cursor:pointer;user-select:none;}
+  .expired-toggle .chev{transition:transform .18s ease;display:flex;}
+  .expired-toggle.open .chev{transform:rotate(180deg);}
+  .expired-section{display:none;}
+  .expired-section.open{display:block;}
+  .expired-section .scheme-card{opacity:.72;}
 
   .empty-state{text-align:center;padding:40px 20px;color:var(--textMuted);font-size:13.5px;}
   .history-chip{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--textDark);}
@@ -87,6 +97,16 @@
   .detail-thumb{width:74px;height:74px;border-radius:14px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:32px;overflow:hidden;flex-shrink:0;}
   .detail-thumb img{width:100%;height:100%;object-fit:contain;padding:10px;}
   .detail-price-badge{display:inline-flex;align-items:center;gap:5px;background:var(--primary2);color:#fff;font-weight:700;font-size:12.5px;padding:5px 12px;border-radius:999px;}
+  .timeline-item{display:flex;gap:12px;position:relative;padding-bottom:16px;}
+  .timeline-item:last-child{padding-bottom:0;}
+  .timeline-marker{display:flex;flex-direction:column;align-items:center;flex-shrink:0;}
+  .timeline-dot{width:11px;height:11px;border-radius:50%;background:var(--primary2);border:2px solid #fff;box-shadow:0 0 0 1.5px var(--primary2);margin-top:2px;}
+  .timeline-dot.deadline{background:#C0392B;box-shadow:0 0 0 1.5px #C0392B;}
+  .timeline-dot.added{background:#D9A72E;box-shadow:0 0 0 1.5px #D9A72E;}
+  .timeline-line{flex:1;width:2px;background:var(--line);margin-top:2px;}
+  .timeline-content{flex:1;min-width:0;}
+  .timeline-label{font-size:11px;font-weight:800;color:var(--textMuted);text-transform:uppercase;letter-spacing:.3px;}
+  .timeline-date{font-size:13.5px;font-weight:700;color:var(--textDark);margin-top:1px;}
   .notify-btn{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--line);color:var(--textDark);font-weight:700;font-size:12px;padding:6px 13px;border-radius:999px;cursor:pointer;}
   .notify-btn svg{flex-shrink:0;}
   .notify-btn.subscribed{background:var(--accent);border-color:var(--accent);color:#3D2B00;}
@@ -230,6 +250,11 @@
     <div class="detail-hero" style="flex-direction:column;align-items:center;text-align:center;gap:10px;">
       <div class="detail-thumb" id="detailThumb" style="width:88px;height:88px;"></div>
       <div class="detail-price-badge" id="detailBenefitBadge">Subsidy</div>
+    </div>
+
+    <div class="box" id="timelineBox">
+      <div class="box-title">Timeline</div>
+      <div id="detailTimeline"></div>
     </div>
 
     <div class="box">
@@ -522,6 +547,98 @@ var SCHEMES = [
     benefitsFromGovt: "State-level coordination, grid access support for wind/solar/storage projects",
     source: "https://www.tngecl.org/",
     trust: 90
+  },
+  {
+    id: "rts-phase2-cfa-claim",
+    addedOn: "2026-09-16",
+    title: "Rooftop Solar Phase-II — CFA Claim Window",
+    org: "Ministry of New & Renewable Energy (MNRE)",
+    cat: ["central","solar"],
+    iconName: "sun",
+    domain: "mnre.gov.in",
+    benefit: "Central Financial Assistance for completed installations",
+    isNew: true,
+    deadline: "2026-11-30",
+    desc: "MNRE has extended the deadline for submitting Central Financial Assistance (CFA) claims under the erstwhile Grid-Connected Rooftop Solar Phase-II programme. Installations that have reached the redeemed, inspected, or installed stage remain eligible if the claim is received by the deadline.",
+    specs: [
+      ["Eligible stage", "Installations already redeemed, inspected, or installed"],
+      ["Claim deadline", "30 November 2026 (extended from 31 Dec 2025)"],
+      ["Governed by", "Original RTS Phase-II programme guidelines"],
+      ["Applies to", "Legacy Phase-II applications only, not new installs"]
+    ],
+    steps: [
+      "Confirm your installation reached the redeemed, inspected, or installed stage under the erstwhile RTS Phase-II programme.",
+      "Gather your installation, inspection, and consumer documentation.",
+      "Submit your CFA claim through the applicable MNRE/DISCOM process before the deadline.",
+      "Track claim status with your DISCOM or installer.",
+      "Funds are disbursed per the original RTS Phase-II guidelines once verified."
+    ],
+    regDate: "Originally under RTS Phase-II — claim window extended 2026",
+    expiryDate: "30 November 2026",
+    benefitsFromGovt: "Central Financial Assistance for eligible legacy rooftop solar installs",
+    source: "https://www.saurenergy.com/solar-energy-news/mnre-extends-rooftop-solar-phase-ii-subsidy-claim-deadline-to-nov-30-12478469",
+    trust: 100
+  },
+  {
+    id: "almm-list2-exemption",
+    addedOn: "2026-09-16",
+    title: "ALMM List-II Exemption — Net-Metering & Open Access Solar",
+    org: "Ministry of New & Renewable Energy (MNRE)",
+    cat: ["central","solar"],
+    iconName: "document",
+    domain: "mnre.gov.in",
+    benefit: "Non-DCR solar cell sourcing exemption for eligible projects",
+    isNew: true,
+    deadline: "2026-12-31",
+    desc: "MNRE extended the exemption window allowing net-metering and open access solar projects to use non-DCR (Domestic Content Requirement) solar cells, easing an earlier ALMM List-II sourcing mandate. Projects must commission before the deadline to qualify under this transition window.",
+    specs: [
+      ["Applies to", "Net-metering and open access C&I solar projects"],
+      ["Exemption", "Non-DCR solar cell sourcing (ALMM List-II relaxation)"],
+      ["Deadline", "31 December 2026 — must be commissioned by then"],
+      ["After deadline", "Only Indian-approved (ALMM-listed) manufacturers permitted"]
+    ],
+    steps: [
+      "Check whether your project falls under net-metering or open access C&I solar.",
+      "Confirm your procurement and commissioning timeline against the 31 Dec 2026 deadline.",
+      "Proceed with installation using currently exempted solar cell sourcing if needed.",
+      "Ensure full commissioning (installed, inspected, switched on) before the deadline.",
+      "Plan for ALMM List-II compliant sourcing on any project expected to commission after the deadline."
+    ],
+    regDate: "Exemption extended 18 July 2026",
+    expiryDate: "31 December 2026",
+    benefitsFromGovt: "Temporary sourcing flexibility for C&I solar developers and EPCs",
+    source: "https://jevanta.in/mnre-non-dcr-solar-panel-eligibility-2026/",
+    trust: 95
+  },
+  {
+    id: "solar-commissioning-extension-nise",
+    addedOn: "2026-09-16",
+    title: "Solar Commissioning Extension & ALMM Exemption (NISE Portal Window)",
+    org: "Ministry of New & Renewable Energy (MNRE)",
+    cat: ["central","solar"],
+    iconName: "document",
+    domain: "mnre.gov.in",
+    benefit: "Commissioning extension for installed-but-not-commissioned projects",
+    deadline: "2026-06-30",
+    desc: "MNRE opened a portal-based process via the National Institute of Solar Energy (NISE) for net-metering and open access solar projects to request commissioning extensions beyond 31 May 2026, along with ALMM List-II exemptions, for projects where modules were already installed but not yet commissioned.",
+    specs: [
+      ["Portal", "solardcrportal.nise.res.in"],
+      ["Eligible", "Projects with modules installed, commissioning pending"],
+      ["Application deadline", "30 June 2026"],
+      ["Review", "Expert Committee chaired by SECI's Director (Power System)"]
+    ],
+    steps: [
+      "Confirm modules were installed but commissioning was not yet completed as of 31 May 2026.",
+      "Prepare supporting documents demonstrating substantial project progress.",
+      "Submit the application through the NISE solardcrportal before the deadline (physical applications not accepted).",
+      "Await review by MNRE's Expert Committee.",
+      "Proceed with commissioning under the granted extension terms if approved."
+    ],
+    regDate: "Window opened per MNRE memorandum, May 2026",
+    expiryDate: "30 June 2026",
+    benefitsFromGovt: "Commissioning extension + ALMM List-II exemption for qualifying projects",
+    source: "https://solarquarter.com/2026/06/09/mnre-sets-june-30-2026-deadline-for-solar-project-extension-and-almm-exemption-applications-through-nise-portal/",
+    trust: 100
   }
 ];
 
@@ -897,34 +1014,101 @@ function schemeIcon(name, size, color){
   }
 }
 
+function pad2(n){ return n < 10 ? "0" + n : "" + n; }
+
+function countdownInfo(deadlineStr){
+  var target = new Date(deadlineStr + "T23:59:59").getTime();
+  var diff = target - Date.now();
+  var oneDay = 24 * 60 * 60 * 1000;
+  if (diff <= 0) return { text: "Expired", cls: "expired-tag", expired: true, live: false };
+  if (diff >= 2 * oneDay){
+    var days = Math.ceil(diff / oneDay);
+    return { text: days + (days === 1 ? " day" : " days"), cls: "", expired: false, live: false };
+  }
+  if (diff >= oneDay){
+    return { text: "24hr", cls: "urgent", expired: false, live: false };
+  }
+  var h = Math.floor(diff / (60 * 60 * 1000));
+  var m = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000));
+  var sec = Math.floor((diff % (60 * 1000)) / 1000);
+  return { text: pad2(h) + ":" + pad2(m) + ":" + pad2(sec), cls: "urgent", expired: false, live: true };
+}
+
+function isSchemeExpired(s){
+  if (!s.deadline) return false;
+  return countdownInfo(s.deadline).expired;
+}
+
+function countdownBadgeHtml(s){
+  if (!s.deadline) return "";
+  var info = countdownInfo(s.deadline);
+  return '<span class="countdown-badge ' + info.cls + '" data-deadline="' + s.deadline + '">' + info.text + '</span>';
+}
+
+function schemeCardHtml(s){
+  var badgeClass = s.cat.indexOf("central") !== -1 ? "central" : "state";
+  var badgeText = s.cat.indexOf("central") !== -1 ? "Central" : (s.cat.indexOf("otherstates") !== -1 ? "Other State" : "AP State");
+  return '<div class="scheme-card" data-id="' + s.id + '">' +
+    countdownBadgeHtml(s) +
+    '<div class="scheme-thumb">' + schemeIcon(s.iconName, 28, "#2D6A4F") + '</div>' +
+    '<div class="scheme-body">' +
+      '<span class="scheme-badge ' + badgeClass + '">' + badgeText + '</span>' +
+      (s.isNew ? '<span class="new-tag">NEW</span>' : '') +
+      '<div class="scheme-title">' + s.title + '</div>' +
+      '<div class="scheme-org">' + s.org + '</div>' +
+      '<div class="scheme-desc">' + s.desc.slice(0, 90) + (s.desc.length > 90 ? '…' : '') + '</div>' +
+      '<div class="trust-pill">' + s.trust + '% trusted source</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function expiredCardHtml(s){
+  var badgeClass = s.cat.indexOf("central") !== -1 ? "central" : "state";
+  var badgeText = s.cat.indexOf("central") !== -1 ? "Central" : (s.cat.indexOf("otherstates") !== -1 ? "Other State" : "AP State");
+  return '<div class="scheme-card" data-id="' + s.id + '">' +
+    '<span class="countdown-badge expired-tag">Expired</span>' +
+    '<div class="scheme-thumb">' + schemeIcon(s.iconName, 28, "#2D6A4F") + '</div>' +
+    '<div class="scheme-body">' +
+      '<span class="scheme-badge ' + badgeClass + '">' + badgeText + '</span>' +
+      '<div class="scheme-title">' + s.title + '</div>' +
+      '<div class="scheme-org">' + s.org + '</div>' +
+      '<div class="scheme-desc">' + s.desc.slice(0, 90) + (s.desc.length > 90 ? '…' : '') + '</div>' +
+      '<div class="trust-pill">' + s.trust + '% trusted source</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function refreshCountdowns(){
+  Array.prototype.forEach.call(document.querySelectorAll(".countdown-badge[data-deadline]"), function(el){
+    var deadline = el.getAttribute("data-deadline");
+    var info = countdownInfo(deadline);
+    el.textContent = info.text;
+    el.className = "countdown-badge " + info.cls;
+    if (info.expired) renderList();
+  });
+}
+setInterval(refreshCountdowns, 1000);
+
 function renderList(){
-  var full = getFiltered();
-  var list = full;
+  var full = getFiltered().slice().sort(function(a, b){
+    var da = a.addedOn || "2000-01-01";
+    var db = b.addedOn || "2000-01-01";
+    return db < da ? -1 : (db > da ? 1 : 0);
+  });
+  var list = full.filter(function(s){ return !isSchemeExpired(s); });
+  var expiredList = full.filter(isSchemeExpired);
   var listEl = document.getElementById("schemeList");
   var countEl = document.getElementById("resultCount");
   var emptyEl = document.getElementById("emptyState");
   renderSearchHistory();
-  countEl.textContent = full.length + (full.length === 1 ? " scheme found" : " schemes found");
-  if (full.length === 0){
+  countEl.textContent = list.length + (list.length === 1 ? " scheme found" : " schemes found");
+  if (list.length === 0 && expiredList.length === 0){
     listEl.innerHTML = "";
     emptyEl.style.display = "block";
     return;
   }
   emptyEl.style.display = "none";
-  listEl.innerHTML = list.map(function(s){
-    var badgeClass = s.cat.indexOf("central") !== -1 ? "central" : "state";
-    var badgeText = s.cat.indexOf("central") !== -1 ? "Central" : (s.cat.indexOf("otherstates") !== -1 ? "Other State" : "AP State");
-    return '<div class="scheme-card" data-id="' + s.id + '">' +
-      '<div class="scheme-thumb">' + schemeIcon(s.iconName, 28, "#2D6A4F") + '</div>' +
-      '<div class="scheme-body">' +
-        '<span class="scheme-badge ' + badgeClass + '">' + badgeText + '</span>' +
-        '<div class="scheme-title">' + s.title + '</div>' +
-        '<div class="scheme-org">' + s.org + '</div>' +
-        '<div class="scheme-desc">' + s.desc.slice(0, 90) + (s.desc.length > 90 ? '…' : '') + '</div>' +
-        '<div class="trust-pill">' + s.trust + '% trusted source</div>' +
-      '</div>' +
-    '</div>';
-  }).join("");
+  listEl.innerHTML = list.map(schemeCardHtml).join("");
 
   if (activeCat === "all" && !searchQuery.trim()){
     var comingSoonOn = isComingSoonSubscribed();
@@ -934,6 +1118,18 @@ function renderList(){
         '🔔 <span>' + (comingSoonOn ? "Notified" : "Get Notified") + '</span>' +
       '</button>' +
     '</div>';
+  }
+
+  if (expiredList.length > 0){
+    var wasOpen = document.querySelector(".expired-toggle") && document.querySelector(".expired-toggle").classList.contains("open");
+    listEl.innerHTML +=
+      '<div class="expired-toggle' + (wasOpen ? ' open' : '') + '" id="expiredToggle">' +
+        '<span>Expired (' + expiredList.length + ')</span>' +
+        '<span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
+      '</div>' +
+      '<div class="expired-section' + (wasOpen ? ' open' : '') + '" id="expiredSection">' +
+        expiredList.map(expiredCardHtml).join("") +
+      '</div>';
   }
 
   Array.prototype.forEach.call(listEl.querySelectorAll(".scheme-card"), function(card){
@@ -949,6 +1145,14 @@ function renderList(){
       toggleComingSoonNotify();
     });
   }
+
+  var expiredToggle = document.getElementById("expiredToggle");
+  if (expiredToggle){
+    expiredToggle.addEventListener("click", function(){
+      expiredToggle.classList.toggle("open");
+      document.getElementById("expiredSection").classList.toggle("open");
+    });
+  }
 }
 
 function openDetail(id){
@@ -961,6 +1165,28 @@ function openDetail(id){
   document.getElementById("detailThumb").innerHTML = schemeIcon(s.iconName, 36, "#2D6A4F");
   document.getElementById("detailBenefitBadge").textContent = s.benefit;
   document.getElementById("detailDesc").textContent = s.desc;
+  (function(){
+    var points = [];
+    if (s.regDate) points.push({ label: "Registered / Launched", date: s.regDate, cls: "" });
+    if (s.addedOn) points.push({ label: "Added to this app", date: s.addedOn, cls: "added" });
+    if (s.expiryDate) points.push({ label: "Expiry / Deadline", date: s.expiryDate, cls: "deadline" });
+    var tlEl = document.getElementById("detailTimeline");
+    if (points.length === 0){
+      tlEl.innerHTML = '<div style="color:var(--textMuted);font-size:12.5px;">No timeline data available for this scheme.</div>';
+    } else {
+      tlEl.innerHTML = points.map(function(p, i){
+        return '<div class="timeline-item">' +
+          '<div class="timeline-marker"><div class="timeline-dot ' + p.cls + '"></div>' +
+          (i < points.length - 1 ? '<div class="timeline-line"></div>' : '') +
+          '</div>' +
+          '<div class="timeline-content">' +
+            '<div class="timeline-label">' + p.label + '</div>' +
+            '<div class="timeline-date">' + p.date + '</div>' +
+          '</div>' +
+        '</div>';
+      }).join("");
+    }
+  })();
   document.getElementById("detailSpecs").innerHTML = s.specs.map(function(row){
     return '<div class="spec-row"><span>' + row[0] + '</span><b>' + row[1] + '</b></div>';
   }).join("");
