@@ -72,15 +72,19 @@
   .scheme-desc{font-size:12.5px;color:var(--textDark);line-height:1.4;}
   .trust-pill{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;color:var(--primary2);margin-top:6px;}
   .countdown-badge{position:absolute;top:10px;right:12px;font-size:9.5px;font-weight:800;padding:3px 7px;border-radius:999px;background:#EAF4EE;color:var(--primary2);letter-spacing:.2px;white-space:nowrap;}
+  .countdown-badge.detail-countdown{position:static;display:inline-block;font-size:12px;padding:5px 12px;margin-top:0;}
   .countdown-badge.urgent{background:#FDEAEA;color:#C0392B;}
   .countdown-badge.expired-tag{background:#FBEAEA;color:#C0392B;}
   .new-tag{display:inline-block;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:999px;background:#FFD54A;color:#5C4400;margin-left:6px;vertical-align:middle;}
-  .expired-toggle{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;margin-top:4px;margin-bottom:8px;border-radius:14px;border:1.5px dashed var(--line);color:var(--textMuted);font-size:12.5px;font-weight:700;cursor:pointer;user-select:none;}
+  .expired-toggle{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:13px 16px;margin-top:8px;margin-bottom:0;border-radius:12px;border:none;background:#FBEAEA;color:#B24242;font-size:13px;font-weight:800;cursor:pointer;user-select:none;}
+  .expired-toggle .count-pill{background:#F3D2D2;color:#B24242;font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;margin-left:6px;}
+  .expired-toggle.open{border-radius:12px 12px 0 0;}
   .expired-toggle .chev{transition:transform .18s ease;display:flex;}
   .expired-toggle.open .chev{transform:rotate(180deg);}
   .expired-section{display:none;}
-  .expired-section.open{display:block;}
-  .expired-section .scheme-card{opacity:.72;}
+  .expired-info-note{font-size:11.5px;color:#B24242;text-align:left;padding:10px 4px 12px;line-height:1.4;}
+  .expired-section.open{display:block;background:#FBEAEA;border-radius:0 0 12px 12px;padding:2px 12px 12px;margin-bottom:8px;}
+  .expired-section .scheme-card{opacity:.88;}
 
   .empty-state{text-align:center;padding:40px 20px;color:var(--textMuted);font-size:13.5px;}
   .history-chip{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--textDark);}
@@ -244,17 +248,15 @@
     <button class="detail-close" id="detailCloseBtn">✕</button>
   </div>
   <div class="detail-inner" style="position:relative;">
-    <button class="notify-btn" id="detailNotifyBtn" style="position:absolute;top:16px;right:16px;z-index:2;">
-      🔔 <span id="detailNotifyBtnLabel">Notify Me</span>
-    </button>
+    <div style="position:absolute;top:16px;right:16px;z-index:2;display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+      <button class="notify-btn" id="detailNotifyBtn">
+        🔔 <span id="detailNotifyBtnLabel">Notify Me</span>
+      </button>
+      <div id="detailCountdownWrap"></div>
+    </div>
     <div class="detail-hero" style="flex-direction:column;align-items:center;text-align:center;gap:10px;">
       <div class="detail-thumb" id="detailThumb" style="width:88px;height:88px;"></div>
       <div class="detail-price-badge" id="detailBenefitBadge">Subsidy</div>
-    </div>
-
-    <div class="box" id="timelineBox">
-      <div class="box-title">Timeline</div>
-      <div id="detailTimeline"></div>
     </div>
 
     <div class="box">
@@ -639,6 +641,24 @@ var SCHEMES = [
     benefitsFromGovt: "Commissioning extension + ALMM List-II exemption for qualifying projects",
     source: "https://solarquarter.com/2026/06/09/mnre-sets-june-30-2026-deadline-for-solar-project-extension-and-almm-exemption-applications-through-nise-portal/",
     trust: 100
+  },
+  {
+    id: "test-expired-demo",
+    title: "[TEST ENTRY] Sample Expired Scheme — verification only",
+    org: "Not a real scheme — for testing the Expired section",
+    cat: ["central"],
+    iconName: "document",
+    domain: "example.com",
+    benefit: "N/A — test entry",
+    deadline: "2026-08-25",
+    desc: "This is a temporary test entry used only to verify the Expired section displays correctly. It will be removed once confirmed.",
+    specs: [["Purpose", "Feature verification only"]],
+    steps: ["No action needed — this is a test entry."],
+    regDate: "Test entry",
+    expiryDate: "25 August 2026 (test)",
+    benefitsFromGovt: "N/A",
+    source: "https://example.com",
+    trust: 0
   }
 ];
 
@@ -1039,6 +1059,13 @@ function isSchemeExpired(s){
   return countdownInfo(s.deadline).expired;
 }
 
+function isPastRemovalWindow(s){
+  if (!s.deadline) return false;
+  var target = new Date(s.deadline + "T23:59:59").getTime();
+  var daysSinceExpiry = (Date.now() - target) / (24 * 60 * 60 * 1000);
+  return daysSinceExpiry > 30;
+}
+
 function countdownBadgeHtml(s){
   if (!s.deadline) return "";
   var info = countdownInfo(s.deadline);
@@ -1082,8 +1109,9 @@ function refreshCountdowns(){
   Array.prototype.forEach.call(document.querySelectorAll(".countdown-badge[data-deadline]"), function(el){
     var deadline = el.getAttribute("data-deadline");
     var info = countdownInfo(deadline);
+    var isDetail = el.classList.contains("detail-countdown");
     el.textContent = info.text;
-    el.className = "countdown-badge " + info.cls;
+    el.className = "countdown-badge " + (isDetail ? "detail-countdown " : "") + info.cls;
     if (info.expired) renderList();
   });
 }
@@ -1096,7 +1124,7 @@ function renderList(){
     return db < da ? -1 : (db > da ? 1 : 0);
   });
   var list = full.filter(function(s){ return !isSchemeExpired(s); });
-  var expiredList = full.filter(isSchemeExpired);
+  var expiredList = full.filter(function(s){ return isSchemeExpired(s) && !isPastRemovalWindow(s); });
   var listEl = document.getElementById("schemeList");
   var countEl = document.getElementById("resultCount");
   var emptyEl = document.getElementById("emptyState");
@@ -1124,10 +1152,11 @@ function renderList(){
     var wasOpen = document.querySelector(".expired-toggle") && document.querySelector(".expired-toggle").classList.contains("open");
     listEl.innerHTML +=
       '<div class="expired-toggle' + (wasOpen ? ' open' : '') + '" id="expiredToggle">' +
-        '<span>Expired (' + expiredList.length + ')</span>' +
+        '<span>Expired<span class="count-pill">' + expiredList.length + '</span></span>' +
         '<span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
       '</div>' +
       '<div class="expired-section' + (wasOpen ? ' open' : '') + '" id="expiredSection">' +
+        '<div class="expired-info-note">Expired schemes are automatically removed from this list 30 days after their deadline.</div>' +
         expiredList.map(expiredCardHtml).join("") +
       '</div>';
   }
@@ -1166,26 +1195,14 @@ function openDetail(id){
   document.getElementById("detailBenefitBadge").textContent = s.benefit;
   document.getElementById("detailDesc").textContent = s.desc;
   (function(){
-    var points = [];
-    if (s.regDate) points.push({ label: "Registered / Launched", date: s.regDate, cls: "" });
-    if (s.addedOn) points.push({ label: "Added to this app", date: s.addedOn, cls: "added" });
-    if (s.expiryDate) points.push({ label: "Expiry / Deadline", date: s.expiryDate, cls: "deadline" });
-    var tlEl = document.getElementById("detailTimeline");
-    if (points.length === 0){
-      tlEl.innerHTML = '<div style="color:var(--textMuted);font-size:12.5px;">No timeline data available for this scheme.</div>';
-    } else {
-      tlEl.innerHTML = points.map(function(p, i){
-        return '<div class="timeline-item">' +
-          '<div class="timeline-marker"><div class="timeline-dot ' + p.cls + '"></div>' +
-          (i < points.length - 1 ? '<div class="timeline-line"></div>' : '') +
-          '</div>' +
-          '<div class="timeline-content">' +
-            '<div class="timeline-label">' + p.label + '</div>' +
-            '<div class="timeline-date">' + p.date + '</div>' +
-          '</div>' +
-        '</div>';
-      }).join("");
+    var wrap = document.getElementById("detailCountdownWrap");
+    wrap.setAttribute("data-scheme-id", s.id);
+    if (!s.deadline){
+      wrap.innerHTML = "";
+      return;
     }
+    var info = countdownInfo(s.deadline);
+    wrap.innerHTML = '<span class="countdown-badge detail-countdown ' + info.cls + '" data-deadline="' + s.deadline + '">' + info.text + '</span>';
   })();
   document.getElementById("detailSpecs").innerHTML = s.specs.map(function(row){
     return '<div class="spec-row"><span>' + row[0] + '</span><b>' + row[1] + '</b></div>';
