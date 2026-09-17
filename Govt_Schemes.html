@@ -151,6 +151,12 @@
   .menu-item{display:flex;align-items:center;gap:12px;padding:14px 20px;font-size:14.5px;color:var(--textDark);cursor:pointer;border-bottom:1px solid var(--line);}
   .menu-item:hover{background:var(--card);}
   .menu-item-icon{width:20px;text-align:center;}
+  .my-notify-chev{margin-left:auto;transition:transform .18s ease;display:flex;}
+  .menu-item.open .my-notify-chev{transform:rotate(180deg);}
+  .my-notify-list{display:none;background:var(--card);}
+  .my-notify-list.open{display:block;}
+  .my-notify-list-item{padding:11px 20px 11px 52px;font-size:13px;color:var(--textDark);border-bottom:1px solid var(--line);cursor:pointer;}
+  .my-notify-empty{padding:11px 20px 11px 52px;font-size:12.5px;color:var(--textMuted);font-style:italic;}
   .notif-overlay.open{display:block;}
   .notif-panel{display:none;position:fixed;right:0;top:0;bottom:0;width:86%;max-width:360px;background:var(--bg);z-index:71;box-shadow:-8px 0 30px rgba(0,0,0,.25);flex-direction:column;}
   .notif-panel.open{display:flex;}
@@ -309,6 +315,12 @@
 <div class="menu-panel" id="menuPanel">
   <div class="menu-panel-header">Govt Schemes</div>
   <div class="menu-items">
+    <div class="menu-item" id="myNotifyToggle">
+      <span class="menu-item-icon">🔔</span>
+      <span>My Notify</span>
+      <span class="my-notify-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+    </div>
+    <div class="my-notify-list" id="myNotifyList"></div>
   </div>
 </div>
 
@@ -809,12 +821,32 @@ function setSchemeSubscribed(id, on){
 }
 
 function requestNotifyPermission(callback){
-  if (!("Notification" in window)){ callback(false); return; }
-  if (Notification.permission === "granted"){ callback(true); return; }
-  if (Notification.permission === "denied"){ callback(false); return; }
-  Notification.requestPermission().then(function(perm){
-    callback(perm === "granted");
-  });
+  try {
+    if (!("Notification" in window)){ callback(false); return; }
+    if (Notification.permission === "granted"){ callback(true); return; }
+    if (Notification.permission === "denied"){ callback(false); return; }
+    var called = false;
+    function callOnce(granted){
+      if (called) return;
+      called = true;
+      callback(granted);
+    }
+    var result;
+    try {
+      // Older browsers use the callback form: requestPermission(callback).
+      // Some modern browsers accept this AND return a Promise, so callOnce
+      // guards against the callback firing twice.
+      result = Notification.requestPermission(function(perm){ callOnce(perm === "granted"); });
+    } catch (e) {
+      callOnce(false);
+      return;
+    }
+    if (result && typeof result.then === "function"){
+      result.then(function(perm){ callOnce(perm === "granted"); }).catch(function(){ callOnce(false); });
+    }
+  } catch (e) {
+    callback(false);
+  }
 }
 
 var NOTIF_LOG_KEY = "govtSchemes_notifLog";
@@ -918,6 +950,31 @@ function toggleMenu(open){
   document.getElementById("menuPanel").classList.toggle("open", open);
 }
 
+function renderMyNotifyList(){
+  var subs = getSchemeSubscriptions();
+  var subscribedSchemes = SCHEMES.filter(function(s){ return !!subs[s.id]; });
+  var listEl = document.getElementById("myNotifyList");
+  if (subscribedSchemes.length === 0){
+    listEl.innerHTML = '<div class="my-notify-empty">No schemes yet — tap "Notify Me" on a scheme to add it here.</div>';
+    return;
+  }
+  listEl.innerHTML = subscribedSchemes.map(function(s){
+    return '<div class="my-notify-list-item" data-id="' + s.id + '">' + s.title + '</div>';
+  }).join("");
+  Array.prototype.forEach.call(listEl.querySelectorAll(".my-notify-list-item"), function(item){
+    item.addEventListener("click", function(){
+      toggleMenu(false);
+      openDetail(item.getAttribute("data-id"));
+    });
+  });
+}
+
+document.getElementById("myNotifyToggle").addEventListener("click", function(){
+  var isOpen = this.classList.toggle("open");
+  document.getElementById("myNotifyList").classList.toggle("open", isOpen);
+  if (isOpen) renderMyNotifyList();
+});
+
 function formatNotifTime(iso){
   try{
     var d = new Date(iso);
@@ -971,9 +1028,9 @@ function fireLocalNotification(title, body){
 function toggleComingSoonNotify(){
   var on = !isComingSoonSubscribed();
   if (on){
+    try{ localStorage.setItem(NOTIFY_COMING_SOON_KEY, "1"); }catch(e){}
+    renderList();
     requestNotifyPermission(function(granted){
-      try{ localStorage.setItem(NOTIFY_COMING_SOON_KEY, "1"); }catch(e){}
-      renderList();
       if (granted) fireLocalNotification("GreenMap AI", "You'll be notified here when new schemes are added.");
     });
   } else {
@@ -985,9 +1042,16 @@ function toggleComingSoonNotify(){
 function toggleSchemeNotify(id){
   var on = !isSchemeSubscribed(id);
   if (on){
+    // Subscribe immediately — the in-app "Notify Me" feature works
+    // regardless of whether the browser's OS-level notification
+    // permission is granted, denied, or never answered.
+    setSchemeSubscribed(id, true);
+    updateDetailNotifyBtn(id);
+    // Ask for OS popup-notification permission separately, in the
+    // background. If granted, future updates also show a native popup;
+    // if not (or if the prompt is never answered), the in-app
+    // subscription above still works on its own.
     requestNotifyPermission(function(granted){
-      setSchemeSubscribed(id, true);
-      updateDetailNotifyBtn(id);
       if (granted) fireLocalNotification("GreenMap AI", "You'll be notified here if this scheme's registration or details change.");
     });
   } else {
