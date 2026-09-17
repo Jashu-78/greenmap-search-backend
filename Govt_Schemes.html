@@ -35,7 +35,9 @@
   .search-row{display:flex;gap:8px;align-items:center;}
   .search-wrap{flex:1;position:relative;}
   .search-wrap svg.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);}
-  .search-wrap input{width:100%;padding:9px 12px 9px 34px;border-radius:8px;border:none;background:var(--primaryDeep);color:#fff;font-size:13.5px;}
+  .search-wrap input{width:100%;padding:9px 34px 9px 34px;border-radius:8px;border:none;background:var(--primaryDeep);color:#fff;font-size:13.5px;}
+  .search-wrap .search-refresh-icon{position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;display:flex;}
+  @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
   .search-wrap input::placeholder{color:#B7D4C3;}
   .recent-search-dropdown{display:none;flex-direction:column;position:absolute;left:0;right:0;top:100%;margin-top:6px;background:#fff;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.25);overflow:hidden;z-index:40;padding:10px 12px;}
   .recent-search-dropdown.show{display:flex;}
@@ -83,6 +85,27 @@
   .expired-toggle.open .chev{transform:rotate(180deg);}
   .expired-section{display:none;}
   .expired-info-note{font-size:11.5px;color:#B24242;text-align:left;padding:10px 4px 12px;line-height:1.4;}
+  .sheet-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:49;}
+  .sheet-backdrop.open{display:block;}
+  .bottom-sheet{display:none;position:fixed;left:0;right:0;bottom:0;background:#fff;z-index:50;border-radius:16px 16px 0 0;max-height:80vh;overflow-y:auto;padding:16px 18px 24px;box-shadow:0 -8px 30px rgba(0,0,0,.25);}
+  .bottom-sheet.open{display:block;}
+  .sheet-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .sheet-title{display:flex;align-items:center;gap:6px;font-weight:700;font-size:14.5px;}
+  .sheet-close-btn{background:var(--card);border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .sort-option{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--line);padding:12px 4px;font-size:14px;color:var(--textDark);cursor:pointer;}
+  .sort-option:last-child{border-bottom:none;}
+  .sort-option.active{color:var(--primary2);font-weight:700;}
+  .filter-section{border-bottom:1px solid var(--line);padding:14px 0;}
+  .filter-section:last-child{border-bottom:none;}
+  .filter-section-title{font-weight:700;font-size:13px;color:var(--textDark);margin-bottom:10px;}
+  .filter-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;}
+  .filter-toggle-label{font-size:13.5px;color:var(--textDark);}
+  .trust-btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .trust-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:999px;border:1.5px solid var(--line);background:#fff;font-size:12.5px;font-weight:600;color:var(--textDark);cursor:pointer;}
+  .trust-btn svg{flex-shrink:0;stroke:var(--textDark);}
+  .trust-btn.active svg{stroke:#fff;}
+  .trust-btn.active{background:var(--primary2);border-color:var(--primary2);color:#fff;}
+  .filter-reset-btn{background:none;border:none;color:#C0392B;font-weight:700;font-size:12.5px;cursor:pointer;}
   .expired-section.open{display:block;background:#FBEAEA;border-radius:0 0 12px 12px;padding:2px 12px 12px;margin-bottom:8px;}
   .expired-section .scheme-card{opacity:.88;}
 
@@ -184,9 +207,15 @@
 
 <div class="search-bar-section">
   <div class="search-row">
+      <button id="schemeFilterBtn" class="icon-btn" aria-label="Filter">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="#fff"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="#fff"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="11" cy="18" r="2" fill="#fff"/></svg>
+      </button>
       <div class="search-wrap">
         <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B7D4C3" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
         <input id="schemeSearchInput" type="text" placeholder="Search schemes, subsidies…" />
+        <span id="schemeSearchRefreshBtn" class="search-refresh-icon" aria-label="Refresh">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#B7D4C3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </span>
         <div id="recentSearchDropdown" class="recent-search-dropdown">
           <div class="recent-search-dropdown-head">
             <span class="recent-search-dropdown-title">Recent Searches</span>
@@ -195,9 +224,70 @@
           <div id="searchHistoryChips" class="recent-search-dropdown-chips"></div>
         </div>
       </div>
-      <button id="schemeRefreshBtn" class="icon-btn" aria-label="Refresh">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      <button id="schemeSortBtn" class="icon-btn" aria-label="Sort">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
       </button>
+  </div>
+</div>
+
+<div class="sheet-backdrop" id="sheetBackdropGS"></div>
+
+<div class="bottom-sheet" id="sortSheetGS">
+  <div class="sheet-top">
+    <div class="sheet-title">Sort By</div>
+    <button class="sheet-close-btn" id="sortSheetGSClose">✕</button>
+  </div>
+  <button class="sort-option active" data-value="new-to-old">Date Added: New to Old</button>
+  <button class="sort-option" data-value="old-to-new">Date Added: Old to New</button>
+  <button class="sort-option" data-value="budget-high-to-low">Budget: High to Low</button>
+  <button class="sort-option" data-value="budget-low-to-high">Budget: Low to High</button>
+  <button class="sort-option" data-value="days-high-to-low">Days Remaining: High to Low</button>
+  <button class="sort-option" data-value="days-low-to-high">Days Remaining: Low to High</button>
+</div>
+
+<div class="bottom-sheet" id="filterSheetGS">
+  <div class="sheet-top">
+    <div class="sheet-title">Filter By</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="filter-reset-btn" id="filterResetGS">Reset</button>
+      <button class="sheet-close-btn" id="filterSheetGSClose">✕</button>
+    </div>
+  </div>
+  <div class="filter-section">
+    <div class="filter-section-title">Category</div>
+    <div class="trust-btn-row" id="filterCatRowGS">
+      <button class="trust-btn active" data-value="all"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>All</button>
+      <button class="trust-btn" data-value="central"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="21" x2="21" y2="21"/><line x1="5" y1="21" x2="5" y2="10"/><line x1="19" y1="21" x2="19" y2="10"/><polygon points="12 3 21 9 3 9"/><line x1="9" y1="21" x2="9" y2="10"/><line x1="15" y1="21" x2="15" y2="10"/></svg>Central</button>
+      <button class="trust-btn" data-value="state"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>AP State</button>
+      <button class="trust-btn" data-value="solar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>Solar</button>
+      <button class="trust-btn" data-value="wind"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2"/><path d="M12.59 19.41A2 2 0 1 0 14 16H2"/><path d="M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/></svg>Wind</button>
+      <button class="trust-btn" data-value="farmer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M3 9h6l2 4h4V6h-3"/><path d="M3 9v5h1"/></svg>Farmer</button>
+      <button class="trust-btn" data-value="otherstates"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Other States</button>
+    </div>
+  </div>
+  <div class="filter-section">
+    <div class="filter-section-title">Budget</div>
+    <div class="trust-btn-row" id="filterBudgetRowGS">
+      <button class="trust-btn" data-value="custom"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>Custom</button>
+      <button class="trust-btn active" data-value="0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>Any</button>
+      <button class="trust-btn" data-value="under50k"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="18" y2="3"/><line x1="6" y1="8" x2="18" y2="8"/><path d="M6 8a6 6 0 0 0 12 0"/><line x1="6" y1="13" x2="18" y2="13"/><line x1="9" y1="21" x2="15" y2="13"/></svg>Under ₹50,000</button>
+      <button class="trust-btn" data-value="50kplus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="18" y2="3"/><line x1="6" y1="8" x2="18" y2="8"/><path d="M6 8a6 6 0 0 0 12 0"/><line x1="6" y1="13" x2="18" y2="13"/><line x1="9" y1="21" x2="15" y2="13"/></svg>₹50,000+</button>
+    </div>
+    <div id="filterBudgetCustomRow" style="display:none;align-items:center;gap:8px;margin-top:10px;">
+      <input type="number" id="filterBudgetMin" placeholder="Min ₹" min="0" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1.5px solid var(--line);font-size:13px;" />
+      <span style="color:var(--textMuted);font-size:13px;">to</span>
+      <input type="number" id="filterBudgetMax" placeholder="Max ₹" min="0" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1.5px solid var(--line);font-size:13px;" />
+    </div>
+  </div>
+  <div class="filter-section">
+    <div class="filter-section-title">Trust Score</div>
+    <div class="trust-btn-row" id="trustBtnRowGS">
+      <button class="trust-btn active" data-value="0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>Any</button>
+      <button class="trust-btn" data-value="80"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg>80%+</button>
+      <button class="trust-btn" data-value="90"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg>90%+</button>
+      <button class="trust-btn" data-value="95"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg>95%+</button>
+      <button class="trust-btn" data-value="100"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/><polyline points="9 12 11 14 15 10"/></svg>100%</button>
+    </div>
   </div>
 </div>
 
@@ -297,6 +387,12 @@
 </div>
 
 <script>
+// Set this to your deployed backend's base URL (from the govt-schemes-backend
+// project) once it's live, e.g. "https://your-server.com". Leave it empty
+// ("") to keep the refresh button working purely offline against the
+// built-in SCHEMES list below.
+var SCHEMES_API_BASE = "";
+
 var SCHEMES = [
   {
     id: "pm-surya-ghar",
@@ -663,6 +759,11 @@ var SCHEMES = [
 ];
 
 var activeCat = "all";
+var activeSort = "new-to-old";
+var filterMinTrust = 0;
+var filterBudget = "0";
+var filterBudgetMin = 0;
+var filterBudgetMax = Infinity;
 
 // ---------------------------------------------------------------------------
 // Notifications — "Notify Me" for coming-soon schemes and per-scheme updates.
@@ -1014,7 +1115,13 @@ function getFiltered(){
     var catMatch = activeCat === "all" || s.cat.indexOf(activeCat) !== -1;
     var q = searchQuery.trim().toLowerCase();
     var searchMatch = !q || (s.title + " " + s.org + " " + s.desc).toLowerCase().indexOf(q) !== -1;
-    return catMatch && searchMatch;
+    var trustMatch = (s.trust || 0) >= filterMinTrust;
+    var budgetVal = extractBudgetValue(s);
+    var budgetMatch = filterBudget === "0"
+      || (filterBudget === "under50k" && budgetVal < 50000)
+      || (filterBudget === "50kplus" && budgetVal >= 50000)
+      || (filterBudget === "custom" && budgetVal >= filterBudgetMin && budgetVal <= filterBudgetMax);
+    return catMatch && searchMatch && trustMatch && budgetMatch;
   });
 }
 
@@ -1117,10 +1224,42 @@ function refreshCountdowns(){
 }
 setInterval(refreshCountdowns, 1000);
 
+function extractBudgetValue(scheme){
+  var match = (scheme.benefit || "").match(/[\d,]+/);
+  if (!match) return 0;
+  return Number(match[0].replace(/,/g, "")) || 0;
+}
+
+function daysRemainingValue(scheme){
+  if (!scheme.deadline) return -1;
+  return (new Date(scheme.deadline + "T23:59:59").getTime() - Date.now()) / (24 * 60 * 60 * 1000);
+}
+
 function renderList(){
   var full = getFiltered().slice().sort(function(a, b){
     var da = a.addedOn || "2000-01-01";
     var db = b.addedOn || "2000-01-01";
+
+    if (activeSort === "old-to-new"){
+      return da < db ? -1 : (da > db ? 1 : 0);
+    }
+    if (activeSort === "budget-high-to-low"){
+      return extractBudgetValue(b) - extractBudgetValue(a);
+    }
+    if (activeSort === "budget-low-to-high"){
+      return extractBudgetValue(a) - extractBudgetValue(b);
+    }
+    if (activeSort === "days-high-to-low"){
+      var aHigh = a.deadline ? daysRemainingValue(a) : -Infinity;
+      var bHigh = b.deadline ? daysRemainingValue(b) : -Infinity;
+      return bHigh - aHigh;
+    }
+    if (activeSort === "days-low-to-high"){
+      var aLow = a.deadline ? daysRemainingValue(a) : Infinity;
+      var bLow = b.deadline ? daysRemainingValue(b) : Infinity;
+      return aLow - bLow;
+    }
+    // default: "new-to-old" — newest added first
     return db < da ? -1 : (db > da ? 1 : 0);
   });
   var list = full.filter(function(s){ return !isSchemeExpired(s); });
@@ -1271,14 +1410,151 @@ document.getElementById("schemeSearchInput").addEventListener("blur", function(e
   }
 });
 
-document.getElementById("schemeRefreshBtn").addEventListener("click", function(){
-  var btn = this;
-  var svg = btn.querySelector("svg");
-  svg.style.transform = "rotate(360deg)";
-  setTimeout(function(){ svg.style.transform = "rotate(0deg)"; }, 500);
+function resetFiltersAndRender(){
   document.getElementById("schemeSearchInput").value = "";
   searchQuery = "";
   activeCat = "all";
+  Array.prototype.forEach.call(document.querySelectorAll(".cat-pill"), function(p){ p.classList.remove("active"); });
+  document.querySelector('.cat-pill[data-cat="all"]').classList.add("active");
+  renderList();
+}
+
+function showRefreshToast(message){
+  var existing = document.getElementById("refreshToast");
+  if (existing) existing.remove();
+  var toast = document.createElement("div");
+  toast.id = "refreshToast";
+  toast.style.cssText = "position:fixed;left:16px;right:16px;bottom:20px;background:#1B4332;color:#fff;padding:12px 16px;border-radius:12px;font-size:13px;z-index:200;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.25);";
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(function(){ toast.remove(); }, 3500);
+}
+
+document.getElementById("schemeSearchRefreshBtn").addEventListener("click", function(){
+  var svg = this.querySelector("svg");
+  svg.style.transition = "transform .5s ease";
+
+  if (!SCHEMES_API_BASE){
+    // No backend configured yet — just spin once and reset local filters.
+    svg.style.transform = "rotate(360deg)";
+    setTimeout(function(){ svg.style.transform = "rotate(0deg)"; }, 500);
+    resetFiltersAndRender();
+    return;
+  }
+
+  // Backend is configured: keep spinning while we ask it to discover +
+  // fetch the latest schemes for real.
+  svg.style.animation = "spin 1s linear infinite";
+  showRefreshToast("Searching government sources for new schemes…");
+
+  fetch(SCHEMES_API_BASE + "/api/discover-now", { method: "POST" })
+    .then(function(){ return fetch(SCHEMES_API_BASE + "/api/schemes"); })
+    .then(function(res){
+      if (!res.ok) throw new Error("Server responded with " + res.status);
+      return res.json();
+    })
+    .then(function(latest){
+      if (Array.isArray(latest) && latest.length > 0){
+        SCHEMES = latest;
+        resetFiltersAndRender();
+        showRefreshToast("Updated — " + latest.length + " schemes loaded.");
+      } else {
+        showRefreshToast("No schemes returned — keeping the current list.");
+      }
+    })
+    .catch(function(err){
+      console.error("Scheme refresh failed:", err);
+      showRefreshToast("Couldn't reach the update server. Showing existing schemes.");
+    })
+    .finally(function(){
+      svg.style.animation = "none";
+      svg.style.transform = "rotate(0deg)";
+    });
+});
+
+document.getElementById("schemeFilterBtn").addEventListener("click", function(){
+  document.getElementById("filterSheetGS").classList.add("open");
+  document.getElementById("sheetBackdropGS").classList.add("open");
+});
+document.getElementById("schemeSortBtn").addEventListener("click", function(){
+  document.getElementById("sortSheetGS").classList.add("open");
+  document.getElementById("sheetBackdropGS").classList.add("open");
+});
+function closeGSSheets(){
+  document.getElementById("filterSheetGS").classList.remove("open");
+  document.getElementById("sortSheetGS").classList.remove("open");
+  document.getElementById("sheetBackdropGS").classList.remove("open");
+}
+document.getElementById("sheetBackdropGS").addEventListener("click", closeGSSheets);
+document.getElementById("sortSheetGSClose").addEventListener("click", closeGSSheets);
+document.getElementById("filterSheetGSClose").addEventListener("click", closeGSSheets);
+
+Array.prototype.forEach.call(document.querySelectorAll("#sortSheetGS .sort-option"), function(btn){
+  btn.addEventListener("click", function(){
+    activeSort = this.getAttribute("data-value");
+    Array.prototype.forEach.call(document.querySelectorAll("#sortSheetGS .sort-option"), function(o){ o.classList.remove("active"); });
+    this.classList.add("active");
+    renderList();
+    closeGSSheets();
+  });
+});
+
+Array.prototype.forEach.call(document.querySelectorAll("#trustBtnRowGS .trust-btn"), function(btn){
+  btn.addEventListener("click", function(){
+    filterMinTrust = Number(this.getAttribute("data-value"));
+    Array.prototype.forEach.call(document.querySelectorAll("#trustBtnRowGS .trust-btn"), function(o){ o.classList.remove("active"); });
+    this.classList.add("active");
+    renderList();
+  });
+});
+
+Array.prototype.forEach.call(document.querySelectorAll("#filterCatRowGS .trust-btn"), function(btn){
+  btn.addEventListener("click", function(){
+    activeCat = this.getAttribute("data-value");
+    Array.prototype.forEach.call(document.querySelectorAll("#filterCatRowGS .trust-btn"), function(o){ o.classList.remove("active"); });
+    this.classList.add("active");
+    // keep the top category pills in sync with this choice
+    Array.prototype.forEach.call(document.querySelectorAll(".cat-pill"), function(p){ p.classList.remove("active"); });
+    var matchingPill = document.querySelector('.cat-pill[data-cat="' + activeCat + '"]');
+    if (matchingPill) matchingPill.classList.add("active");
+    renderList();
+  });
+});
+
+Array.prototype.forEach.call(document.querySelectorAll("#filterBudgetRowGS .trust-btn"), function(btn){
+  btn.addEventListener("click", function(){
+    filterBudget = this.getAttribute("data-value");
+    Array.prototype.forEach.call(document.querySelectorAll("#filterBudgetRowGS .trust-btn"), function(o){ o.classList.remove("active"); });
+    this.classList.add("active");
+    document.getElementById("filterBudgetCustomRow").style.display = (filterBudget === "custom") ? "flex" : "none";
+    renderList();
+  });
+});
+
+document.getElementById("filterBudgetMin").addEventListener("input", function(){
+  filterBudgetMin = this.value === "" ? 0 : Number(this.value);
+  renderList();
+});
+document.getElementById("filterBudgetMax").addEventListener("input", function(){
+  filterBudgetMax = this.value === "" ? Infinity : Number(this.value);
+  renderList();
+});
+
+document.getElementById("filterResetGS").addEventListener("click", function(){
+  filterMinTrust = 0;
+  filterBudget = "0";
+  filterBudgetMin = 0;
+  filterBudgetMax = Infinity;
+  document.getElementById("filterBudgetMin").value = "";
+  document.getElementById("filterBudgetMax").value = "";
+  document.getElementById("filterBudgetCustomRow").style.display = "none";
+  activeCat = "all";
+  Array.prototype.forEach.call(document.querySelectorAll("#trustBtnRowGS .trust-btn"), function(o){ o.classList.remove("active"); });
+  document.querySelector('#trustBtnRowGS .trust-btn[data-value="0"]').classList.add("active");
+  Array.prototype.forEach.call(document.querySelectorAll("#filterBudgetRowGS .trust-btn"), function(o){ o.classList.remove("active"); });
+  document.querySelector('#filterBudgetRowGS .trust-btn[data-value="0"]').classList.add("active");
+  Array.prototype.forEach.call(document.querySelectorAll("#filterCatRowGS .trust-btn"), function(o){ o.classList.remove("active"); });
+  document.querySelector('#filterCatRowGS .trust-btn[data-value="all"]').classList.add("active");
   Array.prototype.forEach.call(document.querySelectorAll(".cat-pill"), function(p){ p.classList.remove("active"); });
   document.querySelector('.cat-pill[data-cat="all"]').classList.add("active");
   renderList();
