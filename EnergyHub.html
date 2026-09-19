@@ -238,7 +238,12 @@
   /* --- Phase 3: demo payment flow --- */
   .payment-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1300;display:none;align-items:center;justify-content:center;padding:24px;}
   .payment-overlay.show{display:flex;}
-  .payment-modal{background:#fff;border-radius:18px;padding:26px 22px;width:100%;max-width:340px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3);}
+  .payment-modal{background:#fff;border-radius:18px;padding:26px 22px;width:100%;max-width:340px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3);position:relative;}
+  .delivery-speed-light{position:absolute;top:14px;right:14px;width:22px;height:22px;border-radius:50%;border:2px solid #ccc;background:#fff;cursor:pointer;transition:background .15s ease,border-color .15s ease,box-shadow .15s ease;padding:0;}
+  .delivery-speed-light[data-mode="green"]{background:#2ecc71;border-color:#27ae60;box-shadow:0 0 8px rgba(46,204,113,.6);}
+  .delivery-speed-light[data-mode="yellow"]{background:#f1c40f;border-color:#d4ac0d;box-shadow:0 0 8px rgba(241,196,15,.6);}
+  .delivery-speed-light[data-mode="red"]{background:#e74c3c;border-color:#c0392b;box-shadow:0 0 8px rgba(231,76,60,.6);}
+  .delivery-speed-label{position:absolute;top:40px;right:12px;font-size:9.5px;color:var(--textMuted);white-space:nowrap;}
   .pay-state{display:flex;flex-direction:column;align-items:center;}
   .pay-icon{font-size:34px;margin-bottom:6px;}
   .pay-state h3{font-size:16px;color:var(--primary);margin-bottom:6px;}
@@ -825,7 +830,8 @@
         <button type="button" id="payCancelBtn2" class="pay-btn-secondary">Cancel</button>
         <button type="button" id="payDemoPaymentLink" class="pay-btn-primary">Pay Now</button>
       </div>
-      <p class="pay-demo-hint">Demo simulation — no real payment is processed.</p>
+      <button type="button" id="deliverySpeedLight" class="delivery-speed-light" data-mode="white" aria-label="Delivery speed (test control)" title="Tap to set simulated delivery speed"></button>
+      <span id="deliverySpeedLabel" class="delivery-speed-label"></span>
     </div>
 
     <div id="payStateQR" class="pay-state" style="display:none;">
@@ -1395,11 +1401,16 @@ var TRACKER_STAGES = ["Product Ready", "Packed", "Shipped", "Reached Nearest Hub
 
 // Demo-only: simulates progress over time since the real order, purely for
 // visual effect — there's no actual courier integration behind this.
-// One stage advances every 30 seconds so you can actually watch it move.
-function trackerStageIndex(createdAtDate){
+// Each order's total duration comes from the delivery-speed light the buyer
+// set at checkout (stored per-order as deliveryWindowMs); progress through
+// the 6 stages is spread evenly across that duration. Falls back to the
+// old fixed 30s/stage timing for pre-existing orders that predate this.
+function trackerStageIndex(createdAtDate, deliveryWindowMs){
   if (!createdAtDate) return 0;
-  var secondsElapsed = (Date.now() - createdAtDate.getTime()) / 1000;
-  var stage = Math.floor(secondsElapsed / 30);
+  var totalMs = deliveryWindowMs || (TRACKER_STAGES.length * 30000);
+  var stageDurationMs = totalMs / TRACKER_STAGES.length;
+  var msElapsed = Date.now() - createdAtDate.getTime();
+  var stage = Math.floor(msElapsed / stageDurationMs);
   return Math.min(Math.max(stage, 0), TRACKER_STAGES.length - 1);
 }
 
@@ -1445,7 +1456,7 @@ function maybeNotifyDelivered(orderId, order, itemsForThisView, showBuyerInfo){
 
 function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
   var createdAtDate = order.createdAt && order.createdAt.toDate ? order.createdAt.toDate() : null;
-  var stageIdx = trackerStageIndex(createdAtDate);
+  var stageIdx = trackerStageIndex(createdAtDate, order.deliveryWindowMs);
 
   var itemsSubtotal = itemsToShow.reduce(function(sum, it){ return sum + (it.price * it.qty); }, 0);
 
@@ -3016,6 +3027,44 @@ var pendingOrderItems = [];
 var pendingOrderTotal = 0;
 var qrCountdownTimer = null;
 
+// --- Delivery-speed test control (replaces the old fixed-speed demo) ---
+// Tapping the light cycles: white (off/default) -> green -> yellow -> red -> white...
+// Each color picks a random total delivery duration within its window,
+// measured from the moment the order is placed.
+var DELIVERY_SPEED_WINDOWS_MS = {
+  white: 5 * 24 * 60 * 60 * 1000,  // unset defaults to the real-world 5-day cap
+  green: 60 * 60 * 1000,            // up to ~1 hour
+  yellow: 2 * 24 * 60 * 60 * 1000,  // up to ~2 days
+  red: 5 * 24 * 60 * 60 * 1000      // up to ~5 days
+};
+var DELIVERY_SPEED_LABELS = {
+  white: "",
+  green: "~1 hour",
+  yellow: "~2 days",
+  red: "~5 days"
+};
+var deliverySpeedMode = "white";
+
+function pickDeliveryWindowMs(){
+  // A random duration within the selected window, so orders don't all
+  // arrive at exactly the same offset.
+  var maxMs = DELIVERY_SPEED_WINDOWS_MS[deliverySpeedMode] || DELIVERY_SPEED_WINDOWS_MS.white;
+  var minMs = Math.min(60000, maxMs); // never less than 1 minute
+  return minMs + Math.random() * (maxMs - minMs);
+}
+
+var deliverySpeedLightEl = document.getElementById("deliverySpeedLight");
+var deliverySpeedLabelEl = document.getElementById("deliverySpeedLabel");
+if (deliverySpeedLightEl){
+  deliverySpeedLightEl.addEventListener("click", function(){
+    var order = ["white", "green", "yellow", "red"];
+    var next = order[(order.indexOf(deliverySpeedMode) + 1) % order.length];
+    deliverySpeedMode = next;
+    deliverySpeedLightEl.setAttribute("data-mode", next);
+    if (deliverySpeedLabelEl) deliverySpeedLabelEl.textContent = DELIVERY_SPEED_LABELS[next];
+  });
+}
+
 function showPayState(state){
   ["payStateConfirm", "payStatePay", "payStateQR", "payStateSuccess"].forEach(function(id){
     document.getElementById(id).style.display = (id === state) ? "flex" : "none";
@@ -3144,7 +3193,8 @@ async function completeOrder(){
       if (it.shopOwnerUid) shopOwnerUidsSet[it.shopOwnerUid] = true;
     });
 
-    var expectedDeliveryMs = Date.now() + 6 * 30000; // matches the 6-stage, 30s-per-stage demo tracker
+    var deliveryWindowMs = pickDeliveryWindowMs();
+    var expectedDeliveryMs = Date.now() + deliveryWindowMs;
 
     var order = {
       buyerUid: currentUser.uid,
@@ -3161,6 +3211,7 @@ async function completeOrder(){
       total: pendingOrderTotal,
       status: "placed",
       expectedDeliveryAt: expectedDeliveryMs,
+      deliveryWindowMs: deliveryWindowMs,
       createdAt: window.EHUB.serverTimestamp()
     };
 
