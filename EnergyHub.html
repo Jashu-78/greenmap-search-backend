@@ -153,6 +153,20 @@
   .save-btn{width:100%;height:46px;border-radius:12px;border:none;background:var(--primary);color:#fff;font-weight:800;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
   .save-btn:disabled{opacity:.6;}
   .form-error{color:#B3261E;font-size:11.5px;margin-top:-6px;margin-bottom:12px;display:none;}
+  .address-type-row{display:flex;gap:8px;}
+  .addr-type-btn{flex:1;padding:9px 6px;border-radius:10px;border:1.5px solid var(--line);background:#fff;font-size:12.5px;font-weight:600;color:var(--textDark);cursor:pointer;}
+  .addr-type-btn.active{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .address-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0 18px 12px;position:relative;}
+  .address-card.default{border-color:var(--primary2);border-width:1.5px;}
+  .address-card-tag{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 9px;border-radius:999px;background:var(--card);color:var(--primary);margin-bottom:6px;}
+  .address-card-tag.default-tag{background:var(--primary2);color:#fff;}
+  .address-card-name{font-weight:700;font-size:14px;color:var(--textDark);}
+  .address-card-phone{font-size:12.5px;color:var(--textMuted);margin-top:1px;}
+  .address-card-text{font-size:13px;color:var(--textDark);margin-top:6px;line-height:1.4;}
+  .address-card-actions{display:flex;gap:16px;margin-top:10px;}
+  .address-card-action{font-size:12px;font-weight:700;color:var(--primary2);background:none;border:none;cursor:pointer;padding:0;}
+  .address-card-action.danger{color:#B3261E;}
+  .address-empty{text-align:center;padding:30px 20px;color:var(--textMuted);font-size:13px;}
   .form-error.show{display:block;}
 
   /* --- Phase 3: shop profile & products --- */
@@ -379,6 +393,7 @@
 
   <button class="menu-item" id="menuCartBtn" type="button">🛒 Cart <span id="cartBadge" class="menu-item-badge" style="display:none;">0</span></button>
   <button class="menu-item" id="menuOrdersBtn" type="button">📦 Orders</button>
+  <button class="menu-item" id="menuAddressBtn" type="button">📍 Your Address</button>
   <button class="menu-item" id="menuFollowingBtn" type="button">👥 Following</button>
   <button class="menu-item" id="menuTopMarketsBtn" type="button">📈 Top Markets</button>
   <button class="menu-item" id="menuTopProductsBtn" type="button">📈 Top Products</button>
@@ -502,6 +517,77 @@
   </div>
   <div class="sheet-body" style="padding:0 0 18px;">
     <div id="ordersListBox"></div>
+  </div>
+</div>
+
+<!-- Buyer's saved delivery addresses -->
+<div id="addressSheet" class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <h3>Your Addresses</h3>
+    <button type="button" class="sheet-close" id="addressCloseBtn">✕</button>
+  </div>
+  <div class="sheet-body" style="padding:0 0 18px;">
+    <button type="button" id="addAddressBtn" class="pay-btn-primary" style="width:calc(100% - 36px);margin:0 18px 14px;">➕ Add New Address</button>
+    <div id="addressListBox"></div>
+  </div>
+</div>
+
+<!-- Add/edit address form — opened after a location pin is confirmed -->
+<div id="addressFormSheet" class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <h3>Address Details</h3>
+    <button type="button" class="sheet-close" id="addressFormCloseBtn">✕</button>
+  </div>
+  <div class="sheet-body">
+    <div class="loc-chip">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <span id="addressLocChipText">Location pinned</span>
+    </div>
+    <form id="addressForm">
+      <div class="field">
+        <label>Save As</label>
+        <div class="address-type-row" id="addressTypeRow">
+          <button type="button" class="addr-type-btn active" data-type="Home">🏠 Home</button>
+          <button type="button" class="addr-type-btn" data-type="Work">💼 Work</button>
+          <button type="button" class="addr-type-btn" data-type="Other">📍 Other</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="addrFullName">Full Name *</label>
+        <input id="addrFullName" type="text" maxlength="60" placeholder="e.g. Ramesh Kumar" required>
+      </div>
+      <div class="field">
+        <label for="addrPhone">Phone Number *</label>
+        <input id="addrPhone" type="tel" maxlength="15" placeholder="e.g. 9876543210" required>
+      </div>
+      <div class="field">
+        <label for="addrHouse">House / Flat / Building *</label>
+        <input id="addrHouse" type="text" maxlength="80" placeholder="e.g. Flat 4B, Green Residency" required>
+      </div>
+      <div class="field">
+        <label for="addrArea">Area / Street / Village *</label>
+        <input id="addrArea" type="text" maxlength="100" placeholder="e.g. MG Road, near bus stop" required>
+      </div>
+      <div class="field">
+        <label for="addrLandmark">Landmark <span class="hint">(optional)</span></label>
+        <input id="addrLandmark" type="text" maxlength="80" placeholder="e.g. Opposite City Hospital">
+      </div>
+      <div class="field">
+        <label for="addrCity">City / Town *</label>
+        <input id="addrCity" type="text" maxlength="60" placeholder="e.g. Vijayawada" required>
+      </div>
+      <div class="field">
+        <label for="addrPincode">Pincode *</label>
+        <input id="addrPincode" type="text" maxlength="6" inputmode="numeric" placeholder="e.g. 520010" required>
+      </div>
+      <div id="addressFormError" class="form-error"></div>
+      <div class="pay-actions" style="margin-top:6px;">
+        <button type="button" id="addressCancelBtn" class="pay-btn-secondary">Cancel</button>
+        <button type="submit" id="addressSaveBtn" class="pay-btn-primary">Save Address</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -1305,6 +1391,8 @@ var followersSheet = document.getElementById("followersSheet");
 var followingSheet = document.getElementById("followingSheet");
 var ordersSheet = document.getElementById("ordersSheet");
 var sellerOrdersSheet = document.getElementById("sellerOrdersSheet");
+var addressSheet = document.getElementById("addressSheet");
+var addressFormSheet = document.getElementById("addressFormSheet");
 var ordersRefreshTimer = null;
 function startOrdersRefresh(reloadFn){
   stopOrdersRefresh();
@@ -1628,6 +1716,186 @@ document.getElementById("ordersCloseBtn").addEventListener("click", function(){
 document.getElementById("sellerOrdersCloseBtn").addEventListener("click", function(){
   closeSheet(sellerOrdersSheet);
   stopOrdersRefresh();
+});
+
+// ---------------------------------------------------------------------------
+// Buyer's saved delivery addresses — list, add (via map pin), delete, set default.
+// Follows the same Firestore query pattern used for orders/shops above.
+// ---------------------------------------------------------------------------
+var selectedAddressType = "Home";
+
+Array.prototype.forEach.call(document.querySelectorAll("#addressTypeRow .addr-type-btn"), function(btn){
+  btn.addEventListener("click", function(){
+    selectedAddressType = this.getAttribute("data-type");
+    Array.prototype.forEach.call(document.querySelectorAll("#addressTypeRow .addr-type-btn"), function(b){ b.classList.remove("active"); });
+    this.classList.add("active");
+  });
+});
+
+function addressCardHtml(id, a){
+  var tagClass = a.isDefault ? "address-card-tag default-tag" : "address-card-tag";
+  var tagText = (a.isDefault ? "DEFAULT · " : "") + a.label.toUpperCase();
+  var fullText = [a.house, a.area, a.landmark, a.city + " - " + a.pincode].filter(Boolean).join(", ");
+  return '<div class="address-card' + (a.isDefault ? " default" : "") + '" data-id="' + id + '">' +
+    '<span class="' + tagClass + '">' + tagText + '</span>' +
+    '<div class="address-card-name">' + a.fullName + '</div>' +
+    '<div class="address-card-phone">' + a.phone + '</div>' +
+    '<div class="address-card-text">' + fullText + '</div>' +
+    '<div class="address-card-actions">' +
+      (a.isDefault ? '' : '<button type="button" class="address-card-action" data-action="default">Set as Default</button>') +
+      '<button type="button" class="address-card-action danger" data-action="delete">Delete</button>' +
+    '</div>' +
+  '</div>';
+}
+
+async function loadAddresses(){
+  var listEl = document.getElementById("addressListBox");
+  if (!currentUser){
+    listEl.innerHTML = '<div class="address-empty">Sign in to save a delivery address.</div>';
+    return;
+  }
+  listEl.innerHTML = '<div class="address-empty">Loading…</div>';
+  try {
+    var q = window.EHUB.query(
+      window.EHUB.collection(window.EHUB.db, "addresses"),
+      window.EHUB.where("uid", "==", currentUser.uid)
+    );
+    var snap = await window.EHUB.getDocs(q);
+    if (snap.empty){
+      listEl.innerHTML = '<div class="address-empty">No saved addresses yet. Tap "Add New Address" above.</div>';
+      return;
+    }
+    var rows = [];
+    snap.forEach(function(docSnap){ rows.push({ id: docSnap.id, data: docSnap.data() }); });
+    rows.sort(function(x,y){ return (y.data.isDefault?1:0) - (x.data.isDefault?1:0); });
+    listEl.innerHTML = rows.map(function(r){ return addressCardHtml(r.id, r.data); }).join("");
+
+    Array.prototype.forEach.call(listEl.querySelectorAll(".address-card-action"), function(btn){
+      btn.addEventListener("click", async function(e){
+        e.stopPropagation();
+        var card = btn.closest(".address-card");
+        var addrId = card.getAttribute("data-id");
+        var action = btn.getAttribute("data-action");
+        if (action === "delete"){
+          if (!confirm("Delete this address?")) return;
+          await window.EHUB.deleteDoc(window.EHUB.doc(window.EHUB.db, "addresses", addrId));
+          loadAddresses();
+        } else if (action === "default"){
+          var allSnap = await window.EHUB.getDocs(window.EHUB.query(
+            window.EHUB.collection(window.EHUB.db, "addresses"),
+            window.EHUB.where("uid", "==", currentUser.uid)
+          ));
+          var updates = [];
+          allSnap.forEach(function(docSnap){
+            updates.push(window.EHUB.updateDoc(docSnap.ref, { isDefault: docSnap.id === addrId }));
+          });
+          await Promise.all(updates);
+          loadAddresses();
+        }
+      });
+    });
+  } catch (err){
+    listEl.innerHTML = '<div class="address-empty">Could not load addresses right now.</div>';
+    console.error(err);
+  }
+}
+
+document.getElementById("menuAddressBtn").addEventListener("click", function(){
+  closeMenu();
+  loadAddresses();
+  openSheet(addressSheet);
+});
+
+document.getElementById("addressCloseBtn").addEventListener("click", function(){
+  closeSheet(addressSheet);
+});
+
+document.getElementById("addAddressBtn").addEventListener("click", async function(){
+  if (!currentUser){
+    try {
+      var user = await window.EHUB_signIn();
+      if (user){ currentUser = user; updateUserChip(); }
+      else return; // redirect flow kicked in
+    } catch (err){
+      alert("Sign-in error:\n" + (err.code || "unknown") + "\n" + (err.message || ""));
+      return;
+    }
+  }
+  closeSheet(addressSheet);
+  enterPinMode("address");
+});
+
+document.getElementById("addressFormCloseBtn").addEventListener("click", function(){
+  closeSheet(addressFormSheet);
+  exitPinMode();
+});
+document.getElementById("addressCancelBtn").addEventListener("click", function(){
+  closeSheet(addressFormSheet);
+  exitPinMode();
+  document.getElementById("addressForm").reset();
+});
+
+document.getElementById("addressForm").addEventListener("submit", async function(e){
+  e.preventDefault();
+  var errBox = document.getElementById("addressFormError");
+  errBox.style.display = "none";
+
+  if (!pinLatLng){
+    errBox.textContent = "Please pin a location on the map first.";
+    errBox.style.display = "block";
+    return;
+  }
+  if (!currentUser){
+    errBox.textContent = "Please sign in to save an address.";
+    errBox.style.display = "block";
+    return;
+  }
+
+  var saveBtn = document.getElementById("addressSaveBtn");
+  var originalLabel = saveBtn.textContent;
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Saving…";
+
+  try {
+    // First address a user saves automatically becomes their default.
+    var existingSnap = await window.EHUB.getDocs(window.EHUB.query(
+      window.EHUB.collection(window.EHUB.db, "addresses"),
+      window.EHUB.where("uid", "==", currentUser.uid)
+    ));
+    var isFirst = existingSnap.empty;
+
+    await window.EHUB.addDoc(window.EHUB.collection(window.EHUB.db, "addresses"), {
+      uid: currentUser.uid,
+      label: selectedAddressType,
+      fullName: document.getElementById("addrFullName").value.trim(),
+      phone: document.getElementById("addrPhone").value.trim(),
+      house: document.getElementById("addrHouse").value.trim(),
+      area: document.getElementById("addrArea").value.trim(),
+      landmark: document.getElementById("addrLandmark").value.trim(),
+      city: document.getElementById("addrCity").value.trim(),
+      pincode: document.getElementById("addrPincode").value.trim(),
+      lat: pinLatLng.lat,
+      lng: pinLatLng.lng,
+      isDefault: isFirst,
+      createdAt: window.EHUB.serverTimestamp()
+    });
+
+    closeSheet(addressFormSheet);
+    exitPinMode();
+    document.getElementById("addressForm").reset();
+    selectedAddressType = "Home";
+    Array.prototype.forEach.call(document.querySelectorAll("#addressTypeRow .addr-type-btn"), function(b){ b.classList.remove("active"); });
+    document.querySelector('#addressTypeRow .addr-type-btn[data-type="Home"]').classList.add("active");
+    openSheet(addressSheet);
+    loadAddresses();
+  } catch (err){
+    errBox.textContent = err.message || "Could not save the address. Please try again.";
+    errBox.style.display = "block";
+    console.error(err);
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = originalLabel;
+  }
 });
 
 document.getElementById("menuOrdersBtn").addEventListener("click", function(){
@@ -2059,7 +2327,10 @@ document.getElementById("menuCartBtn").addEventListener("click", function(){
 
 var pinModeActive = false;
 
-function enterPinMode(){
+var pinModePurpose = "shop"; // "shop" | "address" — decides what pinContinueBtn opens next
+
+function enterPinMode(purpose){
+  pinModePurpose = purpose || "shop";
   pinModeActive = true;
   pinBanner.classList.add("show");
   pinBar.classList.add("show");
@@ -2124,12 +2395,17 @@ document.getElementById("pinLocateBtn").addEventListener("click", function(){
 
 pinContinueBtn.addEventListener("click", function(){
   if (!pinLatLng) return;
-  document.getElementById("locChipText").textContent =
-    "Pin set at " + pinLatLng.lat.toFixed(4) + ", " + pinLatLng.lng.toFixed(4);
+  var pinText = "Pin set at " + pinLatLng.lat.toFixed(4) + ", " + pinLatLng.lng.toFixed(4);
   pinBanner.classList.remove("show");
   pinBar.classList.remove("show");
   mainSearchResults.classList.remove("show");
-  openSheet(shopSheet);
+  if (pinModePurpose === "address"){
+    document.getElementById("addressLocChipText").textContent = pinText;
+    openSheet(addressFormSheet);
+  } else {
+    document.getElementById("locChipText").textContent = pinText;
+    openSheet(shopSheet);
+  }
 });
 
 document.getElementById("sheetCloseBtn").addEventListener("click", function(){
@@ -2139,6 +2415,9 @@ document.getElementById("sheetCloseBtn").addEventListener("click", function(){
 sheetOverlay.addEventListener("click", function(){
   if (activeSheet === shopSheet){
     closeSheet(shopSheet);
+    exitPinMode();
+  } else if (activeSheet === addressFormSheet){
+    closeSheet(addressFormSheet);
     exitPinMode();
   } else if (activeSheet){
     closeSheet(activeSheet);
