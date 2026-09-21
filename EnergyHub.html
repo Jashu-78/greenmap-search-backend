@@ -141,6 +141,9 @@
   }
   .field input:focus, .field select:focus, .field textarea:focus{border-color:var(--primary2);}
   .field textarea{resize:vertical;min-height:64px;}
+  .field input.field-invalid, .field select.field-invalid, .field textarea.field-invalid{border-color:#B3261E;background:#FDEEEE;}
+  .field-invalid-msg{color:#B3261E;font-size:11px;margin-top:4px;display:none;}
+  .field-invalid-msg.show{display:block;}
   .loc-chip{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--textDark);margin-bottom:14px;}
   .photo-upload-box{border:1.5px dashed var(--line);border-radius:12px;overflow:hidden;}
   .photo-pick-label{display:flex;align-items:center;justify-content:center;height:110px;font-size:13px;color:var(--textMuted);cursor:pointer;background:var(--bg);}
@@ -167,6 +170,13 @@
   .address-card-action{font-size:12px;font-weight:700;color:var(--primary2);background:none;border:none;cursor:pointer;padding:0;}
   .address-card-action.danger{color:#B3261E;}
   .address-empty{text-align:center;padding:30px 20px;color:var(--textMuted);font-size:13px;}
+  .checkout-address-card{background:var(--card);border:1.5px solid var(--primary2);border-radius:12px;padding:14px;text-align:left;position:relative;}
+  .checkout-address-check{position:absolute;top:12px;right:12px;width:22px;height:22px;border-radius:50%;background:var(--primary2);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;}
+  .checkout-address-name{font-weight:700;font-size:13.5px;color:var(--textDark);padding-right:26px;}
+  .checkout-address-text{font-size:12.5px;color:var(--textMuted);margin-top:4px;line-height:1.4;}
+  .checkout-change-link{display:block;margin-top:10px;background:none;border:none;color:var(--primary2);font-weight:700;font-size:12.5px;cursor:pointer;padding:0;text-align:left;}
+  .checkout-no-address{text-align:center;padding:16px 10px;}
+  .checkout-no-address p{font-size:13px;color:var(--textMuted);margin:0 0 12px;}
   .form-error.show{display:block;}
 
   /* --- Phase 3: shop profile & products --- */
@@ -557,18 +567,22 @@
       <div class="field">
         <label for="addrFullName">Full Name *</label>
         <input id="addrFullName" type="text" maxlength="60" placeholder="e.g. Ramesh Kumar" required>
+        <div class="field-invalid-msg" id="addrFullNameErr">Please enter your full name.</div>
       </div>
       <div class="field">
         <label for="addrPhone">Phone Number *</label>
         <input id="addrPhone" type="tel" maxlength="15" placeholder="e.g. 9876543210" required>
+        <div class="field-invalid-msg" id="addrPhoneErr">Please enter a valid 10-digit phone number.</div>
       </div>
       <div class="field">
         <label for="addrHouse">House / Flat / Building *</label>
         <input id="addrHouse" type="text" maxlength="80" placeholder="e.g. Flat 4B, Green Residency" required>
+        <div class="field-invalid-msg" id="addrHouseErr">Please enter your house/flat/building.</div>
       </div>
       <div class="field">
         <label for="addrArea">Area / Street / Village *</label>
         <input id="addrArea" type="text" maxlength="100" placeholder="e.g. MG Road, near bus stop" required>
+        <div class="field-invalid-msg" id="addrAreaErr">Please enter your area/street/village.</div>
       </div>
       <div class="field">
         <label for="addrLandmark">Landmark <span class="hint">(optional)</span></label>
@@ -577,10 +591,12 @@
       <div class="field">
         <label for="addrCity">City / Town *</label>
         <input id="addrCity" type="text" maxlength="60" placeholder="e.g. Vijayawada" required>
+        <div class="field-invalid-msg" id="addrCityErr">Please enter your city/town.</div>
       </div>
       <div class="field">
         <label for="addrPincode">Pincode *</label>
         <input id="addrPincode" type="text" maxlength="6" inputmode="numeric" placeholder="e.g. 520010" required>
+        <div class="field-invalid-msg" id="addrPincodeErr">Please enter a valid 6-digit pincode.</div>
       </div>
       <div id="addressFormError" class="form-error"></div>
       <div class="pay-actions" style="margin-top:6px;">
@@ -909,6 +925,16 @@
       </div>
     </div>
 
+    <div id="payStateAddress" class="pay-state" style="display:none;">
+      <div class="pay-icon">📍</div>
+      <h3>Delivery Address</h3>
+      <div id="checkoutAddressBox" style="width:100%;"></div>
+      <div class="pay-actions">
+        <button type="button" id="payAddressBackBtn" class="pay-btn-secondary">Back</button>
+        <button type="button" id="payAddressContinueBtn" class="pay-btn-primary" disabled>Continue to Payment</button>
+      </div>
+    </div>
+
     <div id="payStatePay" class="pay-state" style="display:none;">
       <p class="pay-total-label">Amount to Pay</p>
       <p class="pay-total-amount" id="payAmountText">₹0</p>
@@ -946,12 +972,12 @@ import { getAuth, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRe
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDbi-gQfQTYSI3naZX0679JXZBKiLGmygE",
-  authDomain: "energyhub-af4da.firebaseapp.com",
-  projectId: "energyhub-af4da",
-  storageBucket: "energyhub-af4da.firebasestorage.app",
-  messagingSenderId: "1013915721842",
-  appId: "1:1013915721842:web:c19916e3b0155a5f1b22eb"
+  apiKey: "AIzaSyAWp6wb0nSg2xOMNDCDzpwBV6k27AxIBn4",
+  authDomain: "greenmap-ai.firebaseapp.com",
+  projectId: "greenmap-ai",
+  storageBucket: "greenmap-ai.firebasestorage.app",
+  messagingSenderId: "824986564861",
+  appId: "1:824986564861:web:b24aa09625840061d3a694"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -1485,7 +1511,7 @@ function updateUserChip(){
 // Phase 4: Orders — buyer's history + seller's "Orders Received", both built
 // from the same "orders" collection created during checkout
 // ---------------------------------------------------------------------------
-var TRACKER_STAGES = ["Product Ready", "Packed", "Shipped", "Reached Nearest Hub", "Out for Delivery", "Handed Over"];
+var TRACKER_STAGES = ["Order Placed", "Reached Local Hub", "Shipped", "Reached Nearest Hub", "Out for Delivery", "Handed Over"];
 
 // Demo-only: simulates progress over time since the real order, purely for
 // visual effect — there's no actual courier integration behind this.
@@ -1539,12 +1565,55 @@ function maybeNotifyDelivered(orderId, order, itemsForThisView, showBuyerInfo){
       targetUids: [order.buyerUid],
       link: "EnergyHub.html?openOrders=1"
     });
+    addNotification({
+      type: "order",
+      title: "How was your order? ⭐",
+      message: "Tap to rate your order #" + orderId.slice(-6).toUpperCase() + " and leave feedback.",
+      targetUids: [order.buyerUid],
+      link: "EnergyHub.html?openOrders=1"
+    });
   }
+}
+
+// Fires one notification per newly-crossed tracker stage (handles the case
+// where multiple stages advance between polls, e.g. fast green orders), and
+// records lastNotifiedStageIndex on the order so we never re-notify the
+// same stage twice. Only called from the buyer's own order view to avoid
+// duplicate writes from the seller's view of the same order.
+var STAGE_NOTIFY_MESSAGES = {
+  0: { title: "Order placed 📦", body: "Your order has been placed and is being prepared." },
+  1: { title: "Reached your local hub 🏬", body: "Your order has reached the local hub near you." },
+  2: { title: "Shipped 🚚", body: "Your order has been shipped." },
+  3: { title: "Reached nearest hub 📍", body: "Your order has reached the hub nearest to your delivery address." },
+  4: { title: "Out for delivery 🛵", body: "Your order is out for delivery." },
+  5: { title: "Handed to delivery partner 🤝", body: "Your order has been handed to the delivery partner." }
+};
+
+function notifyStageAdvance(orderId, order, stageIdx){
+  var lastNotified = typeof order.lastNotifiedStageIndex === "number" ? order.lastNotifiedStageIndex : -1;
+  if (stageIdx <= lastNotified) return;
+
+  for (var i = lastNotified + 1; i <= stageIdx; i++){
+    var msg = STAGE_NOTIFY_MESSAGES[i];
+    if (msg){
+      addNotification({
+        type: "order",
+        title: msg.title,
+        message: msg.body + " (Order #" + orderId.slice(-6).toUpperCase() + ")",
+        targetUids: [order.buyerUid],
+        link: "EnergyHub.html?openOrders=1"
+      });
+    }
+  }
+
+  window.EHUB.updateDoc(window.EHUB.doc(window.EHUB.db, "orders", orderId), { lastNotifiedStageIndex: stageIdx })
+    .catch(function(err){ console.error("Failed to record lastNotifiedStageIndex:", err); });
 }
 
 function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
   var createdAtDate = order.createdAt && order.createdAt.toDate ? order.createdAt.toDate() : null;
   var stageIdx = trackerStageIndex(createdAtDate, order.deliveryWindowMs);
+  if (!showBuyerInfo) notifyStageAdvance(orderId, order, stageIdx);
 
   var itemsSubtotal = itemsToShow.reduce(function(sum, it){ return sum + (it.price * it.qty); }, 0);
 
@@ -1558,8 +1627,17 @@ function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
     '</div>';
   }).join("");
 
-  var secondsElapsed = createdAtDate ? (Date.now() - createdAtDate.getTime()) / 1000 : 0;
-  var trackerFinished = secondsElapsed >= TRACKER_STAGES.length * 30;
+  // trackerFinished must be based on the order's own total deliveryWindowMs
+  // (see the delivery-speed light control), not the old fixed "6 stages x
+  // 30s" assumption — different orders now run at very different speeds.
+  // This is deliberately a separate check from stageIdx: stageIdx caps at
+  // the last stage index once time is anywhere in the final stage's
+  // window, but "delivered" should only fire once the *full* duration has
+  // actually elapsed, so "Handed Over" gets its own moment as the current
+  // stage before flipping to fully complete.
+  var totalWindowMs = order.deliveryWindowMs || (TRACKER_STAGES.length * 30000);
+  var msElapsedTotal = createdAtDate ? (Date.now() - createdAtDate.getTime()) : 0;
+  var trackerFinished = msElapsedTotal >= totalWindowMs;
   if (trackerFinished) maybeNotifyDelivered(orderId, order, itemsToShow, showBuyerInfo);
 
   var trackerHtml = trackerFinished
@@ -1723,6 +1801,72 @@ document.getElementById("sellerOrdersCloseBtn").addEventListener("click", functi
 // Follows the same Firestore query pattern used for orders/shops above.
 // ---------------------------------------------------------------------------
 var selectedAddressType = "Home";
+var addressFlowContext = "menu"; // "menu" | "checkout" — decides where actions return to
+var checkoutSelectedAddressId = null;
+
+async function refreshCheckoutAddressState(){
+  var box = document.getElementById("checkoutAddressBox");
+  var continueBtn = document.getElementById("payAddressContinueBtn");
+  if (!currentUser){
+    box.innerHTML = '<div class="checkout-no-address"><p>Please sign in to add a delivery address.</p></div>';
+    continueBtn.disabled = true;
+    return;
+  }
+  box.innerHTML = '<div class="checkout-no-address"><p>Loading…</p></div>';
+  try {
+    var q = window.EHUB.query(
+      window.EHUB.collection(window.EHUB.db, "addresses"),
+      window.EHUB.where("uid", "==", currentUser.uid)
+    );
+    var snap = await window.EHUB.getDocs(q);
+    var rows = [];
+    snap.forEach(function(docSnap){ rows.push({ id: docSnap.id, data: docSnap.data() }); });
+
+    if (rows.length === 0){
+      checkoutSelectedAddressId = null;
+      box.innerHTML = '<div class="checkout-no-address"><p>You don\'t have a saved delivery address yet.</p>' +
+        '<button type="button" id="checkoutAddAddressBtn" class="pay-btn-primary">➕ Add Address</button></div>';
+      document.getElementById("checkoutAddAddressBtn").addEventListener("click", beginCheckoutAddAddress);
+      continueBtn.disabled = true;
+      return;
+    }
+
+    var chosen = rows.find(function(r){ return r.id === checkoutSelectedAddressId; })
+      || rows.find(function(r){ return r.data.isDefault; })
+      || rows[0];
+    checkoutSelectedAddressId = chosen.id;
+    var a = chosen.data;
+    var fullText = [a.house, a.area, a.landmark, a.city + " - " + a.pincode].filter(Boolean).join(", ");
+    box.innerHTML =
+      '<div class="checkout-address-card">' +
+        '<span class="checkout-address-check">✓</span>' +
+        '<div class="checkout-address-name">' + a.label + ' — ' + a.fullName + '</div>' +
+        '<div class="checkout-address-text">' + fullText + '</div>' +
+        '<div class="checkout-address-text">' + a.phone + '</div>' +
+      '</div>' +
+      '<button type="button" id="checkoutChangeAddressBtn" class="checkout-change-link">Change Address</button>';
+    document.getElementById("checkoutChangeAddressBtn").addEventListener("click", beginCheckoutChangeAddress);
+    continueBtn.disabled = false;
+  } catch (err){
+    box.innerHTML = '<div class="checkout-no-address"><p>Could not load your address. Please try again.</p></div>';
+    continueBtn.disabled = true;
+    console.error(err);
+  }
+}
+
+function beginCheckoutAddAddress(){
+  addressFlowContext = "checkout";
+  paymentOverlay.classList.remove("show");
+  enterPinMode("address");
+}
+
+function beginCheckoutChangeAddress(){
+  addressFlowContext = "checkout";
+  paymentOverlay.classList.remove("show");
+  openSheet(addressSheet);
+  loadAddresses();
+}
+
 
 Array.prototype.forEach.call(document.querySelectorAll("#addressTypeRow .addr-type-btn"), function(btn){
   btn.addEventListener("click", function(){
@@ -1770,6 +1914,18 @@ async function loadAddresses(){
     rows.sort(function(x,y){ return (y.data.isDefault?1:0) - (x.data.isDefault?1:0); });
     listEl.innerHTML = rows.map(function(r){ return addressCardHtml(r.id, r.data); }).join("");
 
+    Array.prototype.forEach.call(listEl.querySelectorAll(".address-card"), function(card){
+      card.addEventListener("click", function(){
+        if (addressFlowContext !== "checkout") return;
+        checkoutSelectedAddressId = card.getAttribute("data-id");
+        closeSheet(addressSheet);
+        addressFlowContext = "menu";
+        paymentOverlay.classList.add("show");
+        showPayState("payStateAddress");
+        refreshCheckoutAddressState();
+      });
+    });
+
     Array.prototype.forEach.call(listEl.querySelectorAll(".address-card-action"), function(btn){
       btn.addEventListener("click", async function(e){
         e.stopPropagation();
@@ -1808,6 +1964,12 @@ document.getElementById("menuAddressBtn").addEventListener("click", function(){
 
 document.getElementById("addressCloseBtn").addEventListener("click", function(){
   closeSheet(addressSheet);
+  if (addressFlowContext === "checkout"){
+    addressFlowContext = "menu";
+    paymentOverlay.classList.add("show");
+    showPayState("payStateAddress");
+    refreshCheckoutAddressState();
+  }
 });
 
 document.getElementById("addAddressBtn").addEventListener("click", async function(){
@@ -1828,17 +1990,79 @@ document.getElementById("addAddressBtn").addEventListener("click", async functio
 document.getElementById("addressFormCloseBtn").addEventListener("click", function(){
   closeSheet(addressFormSheet);
   exitPinMode();
+  if (addressFlowContext === "checkout"){
+    addressFlowContext = "menu";
+    paymentOverlay.classList.add("show");
+    showPayState("payStateAddress");
+    refreshCheckoutAddressState();
+  }
 });
 document.getElementById("addressCancelBtn").addEventListener("click", function(){
   closeSheet(addressFormSheet);
   exitPinMode();
   document.getElementById("addressForm").reset();
+  clearAddressFieldErrors();
+  if (addressFlowContext === "checkout"){
+    addressFlowContext = "menu";
+    paymentOverlay.classList.add("show");
+    showPayState("payStateAddress");
+    refreshCheckoutAddressState();
+  }
 });
+
+var ADDRESS_REQUIRED_FIELDS = ["addrFullName", "addrPhone", "addrHouse", "addrArea", "addrCity", "addrPincode"];
+
+function clearAddressFieldErrors(){
+  ADDRESS_REQUIRED_FIELDS.forEach(function(id){
+    document.getElementById(id).classList.remove("field-invalid");
+    var msg = document.getElementById(id + "Err");
+    if (msg) msg.classList.remove("show");
+  });
+}
+
+function markAddressFieldInvalid(id){
+  var el = document.getElementById(id);
+  el.classList.add("field-invalid");
+  var msg = document.getElementById(id + "Err");
+  if (msg) msg.classList.add("show");
+  return el;
+}
+
+// Clear a field's red state the moment the buyer starts fixing it.
+ADDRESS_REQUIRED_FIELDS.forEach(function(id){
+  document.getElementById(id).addEventListener("input", function(){
+    this.classList.remove("field-invalid");
+    var msg = document.getElementById(id + "Err");
+    if (msg) msg.classList.remove("show");
+  });
+});
+
+function validateAddressForm(){
+  clearAddressFieldErrors();
+  var firstInvalid = null;
+  function markOnce(id){ firstInvalid = firstInvalid || markAddressFieldInvalid(id); }
+
+  if (!document.getElementById("addrFullName").value.trim()) markOnce("addrFullName");
+  if (!/^[6-9]\d{9}$/.test(document.getElementById("addrPhone").value.trim())) markOnce("addrPhone");
+  if (!document.getElementById("addrHouse").value.trim()) markOnce("addrHouse");
+  if (!document.getElementById("addrArea").value.trim()) markOnce("addrArea");
+  if (!document.getElementById("addrCity").value.trim()) markOnce("addrCity");
+  if (!/^\d{6}$/.test(document.getElementById("addrPincode").value.trim())) markOnce("addrPincode");
+
+  return firstInvalid; // null if every field is valid, otherwise the first bad field's element
+}
 
 document.getElementById("addressForm").addEventListener("submit", async function(e){
   e.preventDefault();
   var errBox = document.getElementById("addressFormError");
   errBox.style.display = "none";
+
+  var firstInvalid = validateAddressForm();
+  if (firstInvalid){
+    firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+    firstInvalid.focus();
+    return;
+  }
 
   if (!pinLatLng){
     errBox.textContent = "Please pin a location on the map first.";
@@ -1864,7 +2088,7 @@ document.getElementById("addressForm").addEventListener("submit", async function
     ));
     var isFirst = existingSnap.empty;
 
-    await window.EHUB.addDoc(window.EHUB.collection(window.EHUB.db, "addresses"), {
+    var newDocRef = await window.EHUB.addDoc(window.EHUB.collection(window.EHUB.db, "addresses"), {
       uid: currentUser.uid,
       label: selectedAddressType,
       fullName: document.getElementById("addrFullName").value.trim(),
@@ -1883,11 +2107,21 @@ document.getElementById("addressForm").addEventListener("submit", async function
     closeSheet(addressFormSheet);
     exitPinMode();
     document.getElementById("addressForm").reset();
+    clearAddressFieldErrors();
     selectedAddressType = "Home";
     Array.prototype.forEach.call(document.querySelectorAll("#addressTypeRow .addr-type-btn"), function(b){ b.classList.remove("active"); });
     document.querySelector('#addressTypeRow .addr-type-btn[data-type="Home"]').classList.add("active");
-    openSheet(addressSheet);
-    loadAddresses();
+
+    if (addressFlowContext === "checkout"){
+      addressFlowContext = "menu";
+      checkoutSelectedAddressId = newDocRef.id;
+      paymentOverlay.classList.add("show");
+      showPayState("payStateAddress");
+      refreshCheckoutAddressState();
+    } else {
+      openSheet(addressSheet);
+      loadAddresses();
+    }
   } catch (err){
     errBox.textContent = err.message || "Could not save the address. Please try again.";
     errBox.style.display = "block";
@@ -2419,6 +2653,18 @@ sheetOverlay.addEventListener("click", function(){
   } else if (activeSheet === addressFormSheet){
     closeSheet(addressFormSheet);
     exitPinMode();
+    if (addressFlowContext === "checkout"){
+      addressFlowContext = "menu";
+      paymentOverlay.classList.add("show");
+      showPayState("payStateAddress");
+      refreshCheckoutAddressState();
+    }
+  } else if (activeSheet === addressSheet && addressFlowContext === "checkout"){
+    closeSheet(addressSheet);
+    addressFlowContext = "menu";
+    paymentOverlay.classList.add("show");
+    showPayState("payStateAddress");
+    refreshCheckoutAddressState();
   } else if (activeSheet){
     closeSheet(activeSheet);
   }
@@ -3306,6 +3552,23 @@ var pendingOrderItems = [];
 var pendingOrderTotal = 0;
 var qrCountdownTimer = null;
 
+// Formats a delivery ETA as "Today, 3:45 PM" / "Tomorrow, 3:45 PM" / "Sep 23, 3:45 PM"
+// — always includes the date, since a bare time (e.g. "3:45 PM") is
+// meaningless/misleading for multi-day delivery windows.
+function formatDeliveryDateTime(ms){
+  var target = new Date(ms);
+  var now = new Date();
+  var startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var startOfTarget = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+  var dayDiff = Math.round((startOfTarget - startOfToday) / 86400000);
+  var timeStr = target.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  var dayStr;
+  if (dayDiff === 0) dayStr = "Today";
+  else if (dayDiff === 1) dayStr = "Tomorrow";
+  else dayStr = target.toLocaleDateString([], { month: "short", day: "numeric" });
+  return dayStr + ", " + timeStr;
+}
+
 // --- Delivery-speed test control (replaces the old fixed-speed demo) ---
 // Tapping the light cycles: white (off/default) -> green -> yellow -> red -> white...
 // Each color picks a random total delivery duration within its window,
@@ -3345,7 +3608,7 @@ if (deliverySpeedLightEl){
 }
 
 function showPayState(state){
-  ["payStateConfirm", "payStatePay", "payStateQR", "payStateSuccess"].forEach(function(id){
+  ["payStateConfirm", "payStateAddress", "payStatePay", "payStateQR", "payStateSuccess"].forEach(function(id){
     document.getElementById(id).style.display = (id === state) ? "flex" : "none";
   });
 }
@@ -3414,6 +3677,15 @@ document.getElementById("payCancelBtn").addEventListener("click", closePaymentFl
 document.getElementById("payCancelBtn2").addEventListener("click", closePaymentFlow);
 
 document.getElementById("payConfirmBtn").addEventListener("click", function(){
+  showPayState("payStateAddress");
+  refreshCheckoutAddressState();
+});
+
+document.getElementById("payAddressBackBtn").addEventListener("click", function(){
+  showPayState("payStateConfirm");
+});
+
+document.getElementById("payAddressContinueBtn").addEventListener("click", function(){
   document.getElementById("payAmountText").textContent = "₹" + pendingOrderTotal.toLocaleString("en-IN");
   showPayState("payStatePay");
 });
@@ -3491,6 +3763,7 @@ async function completeOrder(){
       status: "placed",
       expectedDeliveryAt: expectedDeliveryMs,
       deliveryWindowMs: deliveryWindowMs,
+      lastNotifiedStageIndex: -1,
       createdAt: window.EHUB.serverTimestamp()
     };
 
@@ -3500,7 +3773,14 @@ async function completeOrder(){
     addNotification({
       type: "order",
       title: "Payment successful ✅",
-      message: "Your order will arrive by " + new Date(expectedDeliveryMs).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      message: "Your order will arrive by " + formatDeliveryDateTime(expectedDeliveryMs),
+      targetUids: [currentUser.uid],
+      link: "EnergyHub.html?openOrders=1"
+    });
+    addNotification({
+      type: "order",
+      title: "Order placed successfully 📦",
+      message: "We're getting your order ready. Expected delivery: " + formatDeliveryDateTime(expectedDeliveryMs),
       targetUids: [currentUser.uid],
       link: "EnergyHub.html?openOrders=1"
     });
