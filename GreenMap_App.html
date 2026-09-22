@@ -901,7 +901,7 @@ function getSeenStage(orderId, role){
 }
 function setSeenStage(orderId, role, idx){ localStorage.setItem(stageSeenKey(orderId, role), String(idx)); }
 function formatStageTime(ms){
-  return new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return new Date(ms).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
 }
 
 async function checkOrderStageNotifications(){

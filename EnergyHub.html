@@ -1531,7 +1531,7 @@ function trackerStageIndex(createdAtDate, deliveryWindowMs){
 function formatOrderDate(createdAtDate){
   if (!createdAtDate) return "";
   return createdAtDate.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) +
-    " · " + createdAtDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+    " · " + createdAtDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
 }
 
 // Fires exactly once per order when its tracker reaches "Handed Over" —
@@ -1655,7 +1655,7 @@ function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
 
   var expectedDeliveryHtml = (!showBuyerInfo && !trackerFinished && order.expectedDeliveryAt)
     ? '<div style="font-size:11.5px;color:var(--textMuted);padding:0 16px 6px;">📅 Expected delivery by ' +
-        new Date(order.expectedDeliveryAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + '</div>'
+        formatDeliveryDateTime(order.expectedDeliveryAt) + '</div>'
     : '';
 
   return '<div class="order-card">' +
@@ -3561,11 +3561,11 @@ function formatDeliveryDateTime(ms){
   var startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   var startOfTarget = new Date(target.getFullYear(), target.getMonth(), target.getDate());
   var dayDiff = Math.round((startOfTarget - startOfToday) / 86400000);
-  var timeStr = target.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  var timeStr = target.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
   var dayStr;
   if (dayDiff === 0) dayStr = "Today";
   else if (dayDiff === 1) dayStr = "Tomorrow";
-  else dayStr = target.toLocaleDateString([], { month: "short", day: "numeric" });
+  else dayStr = target.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
   return dayStr + ", " + timeStr;
 }
 
