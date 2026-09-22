@@ -605,6 +605,18 @@ onAuthStateChanged(auth, function(user){
   updateProfileUI(user);
 });
 
+// Resolves the first time Firebase Auth finishes restoring (or confirming
+// there is no) an existing sign-in session. Notifications wait on this so
+// they never read auth.currentUser before it's actually ready — otherwise
+// a signed-in person's own notifications look "not for them" for a moment
+// right after page load.
+var GM_authReadyResolve;
+window.GM_authReady = new Promise(function(resolve){ GM_authReadyResolve = resolve; });
+var GM_authReadyDone = false;
+onAuthStateChanged(auth, function(){
+  if (!GM_authReadyDone){ GM_authReadyDone = true; GM_authReadyResolve(); }
+});
+
 // ---------------------------------------------------------------------------
 // Location + live weather for the top pill (GPS + Open-Meteo, both free,
 // no API key — same services already used on EnergyScope AP)
@@ -765,6 +777,7 @@ function notifIconFor(type){
 }
 
 async function fetchNotifications(){
+  await window.GM_authReady; // don't decide "not for this person" before sign-in has been checked
   var q = query(collection(db, "notifications"), orderBy("createdAt", "desc"), limit(30));
   var snap = await getDocs(q);
   var items = [];
@@ -772,19 +785,15 @@ async function fetchNotifications(){
   var uid = user ? user.uid : null;
   var email = user ? user.email : null;
   var clearedBefore = getClearedBeforeTime();
-  // --- TEMP DEBUG (remove after diagnosis) ---
-  window.GM_DEBUG = { totalDocs: snap.size, uid: uid, clearedBefore: clearedBefore, skippedByTarget: 0, skippedByTime: 0, kept: 0 };
-  // --- END TEMP DEBUG ---
   snap.forEach(function(docSnap){
     var d = docSnap.data();
     if (d.targetUids || d.targetEmails){
       var matchesUid = d.targetUids && uid && d.targetUids.indexOf(uid) !== -1;
       var matchesEmail = d.targetEmails && email && d.targetEmails.indexOf(email) !== -1;
-      if (!matchesUid && !matchesEmail) { window.GM_DEBUG.skippedByTarget++; return; } // targeted, not for this person
+      if (!matchesUid && !matchesEmail) return; // targeted, not for this person
     }
     var time = d.createdAt && d.createdAt.toMillis ? d.createdAt.toMillis() : 0;
-    if (time && time <= clearedBefore) { window.GM_DEBUG.skippedByTime++; return; } // this device cleared everything up to here
-    window.GM_DEBUG.kept++;
+    if (time && time <= clearedBefore) return; // this device cleared everything up to here
     items.push({
       id: docSnap.id,
       type: d.type || "general",
@@ -836,10 +845,7 @@ async function renderNotificationList(){
   try {
     var items = await fetchNotifications();
     if (items.length === 0){
-      var dbg = window.GM_DEBUG || {};
-      listEl.innerHTML = '<div class="notif-empty">No notifications yet — updates about nearby shops and your followed shops will show up here.'
-        + '<br><br><b>DEBUG:</b> totalDocs=' + dbg.totalDocs + ' uid=' + dbg.uid + ' clearedBefore=' + dbg.clearedBefore
-        + ' skippedByTarget=' + dbg.skippedByTarget + ' skippedByTime=' + dbg.skippedByTime + ' kept=' + dbg.kept + '</div>';
+      listEl.innerHTML = '<div class="notif-empty">No notifications yet — updates about nearby shops and your followed shops will show up here.</div>';
       clearRow.style.display = "none";
     } else {
       listEl.innerHTML = "";
