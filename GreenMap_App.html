@@ -772,15 +772,19 @@ async function fetchNotifications(){
   var uid = user ? user.uid : null;
   var email = user ? user.email : null;
   var clearedBefore = getClearedBeforeTime();
+  // --- TEMP DEBUG (remove after diagnosis) ---
+  window.GM_DEBUG = { totalDocs: snap.size, uid: uid, clearedBefore: clearedBefore, skippedByTarget: 0, skippedByTime: 0, kept: 0 };
+  // --- END TEMP DEBUG ---
   snap.forEach(function(docSnap){
     var d = docSnap.data();
     if (d.targetUids || d.targetEmails){
       var matchesUid = d.targetUids && uid && d.targetUids.indexOf(uid) !== -1;
       var matchesEmail = d.targetEmails && email && d.targetEmails.indexOf(email) !== -1;
-      if (!matchesUid && !matchesEmail) return; // targeted, not for this person
+      if (!matchesUid && !matchesEmail) { window.GM_DEBUG.skippedByTarget++; return; } // targeted, not for this person
     }
     var time = d.createdAt && d.createdAt.toMillis ? d.createdAt.toMillis() : 0;
-    if (time && time <= clearedBefore) return; // this device cleared everything up to here
+    if (time && time <= clearedBefore) { window.GM_DEBUG.skippedByTime++; return; } // this device cleared everything up to here
+    window.GM_DEBUG.kept++;
     items.push({
       id: docSnap.id,
       type: d.type || "general",
@@ -832,7 +836,10 @@ async function renderNotificationList(){
   try {
     var items = await fetchNotifications();
     if (items.length === 0){
-      listEl.innerHTML = '<div class="notif-empty">No notifications yet — updates about nearby shops and your followed shops will show up here.</div>';
+      var dbg = window.GM_DEBUG || {};
+      listEl.innerHTML = '<div class="notif-empty">No notifications yet — updates about nearby shops and your followed shops will show up here.'
+        + '<br><br><b>DEBUG:</b> totalDocs=' + dbg.totalDocs + ' uid=' + dbg.uid + ' clearedBefore=' + dbg.clearedBefore
+        + ' skippedByTarget=' + dbg.skippedByTarget + ' skippedByTime=' + dbg.skippedByTime + ' kept=' + dbg.kept + '</div>';
       clearRow.style.display = "none";
     } else {
       listEl.innerHTML = "";
